@@ -25,6 +25,44 @@ def _diff_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
     )
 
 
+def _semantic_diff_matches(goal_name: str, trigger_object: Dict[str, Any], diff: Dict[str, Any]) -> bool:
+    created_objects = diff.get("created_objects", [])
+    created_relations = diff.get("created_relations", [])
+
+    if goal_name == "file_summary_behavior":
+        if len(created_objects) != 1:
+            return False
+        summary = created_objects[0]
+        if summary.get("type") != "Summary":
+            return False
+        content = trigger_object.get("content", "")
+        first = (content.split(".")[0].strip() + ".") if "." in content else content.strip()
+        line_count = len(content.splitlines()) if content else 0
+        if summary.get("first_sentence") != first or summary.get("line_count") != line_count:
+            return False
+        sid = f"summary-{trigger_object.get('id')}"
+        return any(
+            r.get("type") == "summarizes" and r.get("from") == sid and r.get("to") == trigger_object.get("id")
+            for r in created_relations
+        )
+
+    if goal_name == "provenance_auditor_behavior":
+        if len(created_objects) != 1:
+            return False
+        evaluation = created_objects[0]
+        if evaluation.get("type") != "Evaluation":
+            return False
+        changes = trigger_object.get("changes", [])
+        missing = sum(1 for c in changes if not c.get("provenance"))
+        return (
+            evaluation.get("patch_proposal_id") in (None, trigger_object.get("id"))
+            and evaluation.get("missing_provenance_count") == missing
+            and evaluation.get("passes") == (missing == 0)
+        )
+
+    return False
+
+
 def _build_summary_markdown(results: List[Dict[str, Any]], timestamp: str) -> str:
     goals = sorted({r["goal"] for r in results})
     conditions = sorted({r["condition"] for r in results})
@@ -158,7 +196,8 @@ def run_experiments(use_llm: bool = False):
                         "sandbox_run_created": True,
                         "sandbox_passed": sandbox.sandbox_passed,
                         "actual_diff": sandbox.structural_diff,
-                        "diff_match": _diff_matches(expected_diff, sandbox.structural_diff),
+                        "diff_match": _diff_matches(expected_diff, sandbox.structural_diff)
+                        and _semantic_diff_matches(goal["goal_name"], goal["trigger_object"], sandbox.structural_diff),
                         "live_graph_unchanged_before_promotion": len(runtime.graph.objects) == 0 and len(runtime.graph.relations) == 0,
                     }
                 )

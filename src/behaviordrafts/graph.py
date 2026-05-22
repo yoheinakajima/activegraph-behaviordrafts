@@ -17,5 +17,6 @@ class GraphState:
             "objects_created": len(created_objects),
             "relations_created": len(created_relations),
             "created_object_ids": created_objects,
+            "created_objects": [dict(self.objects[oid]) for oid in created_objects],
             "created_relations": created_relations,
         }
