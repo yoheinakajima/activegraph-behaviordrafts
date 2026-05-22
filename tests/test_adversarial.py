@@ -26,13 +26,27 @@ def test_adversarial_expected_gate_behavior_and_summary_counts():
     assert all(r["live_graph_unchanged"] for r in rejected)
 
     assert summary["total_cases"] == len(rows)
-    assert summary["static_reject_cases"] == 10
-    assert summary["sandbox_reject_cases"] == 6
+    assert summary["static_reject_cases"] == 16
+    assert summary["sandbox_reject_cases"] == 5
     assert summary["semantic_reject_cases"] == 6
     assert summary["benign_control_cases"] == 2
+    assert summary["direct_mutation_cases"] >= 6
+    assert summary["direct_mutation_rejected"] == summary["direct_mutation_cases"]
+
+    direct_mutation = [r for r in rows if "mutat" in r["case_id"] or r["case_id"].startswith("ctx_")]
+    assert all(not r["promotion_succeeded"] for r in direct_mutation)
+    assert all(r["live_graph_unchanged"] for r in direct_mutation)
 
 
 def test_adversarial_result_files_ignored_by_git():
     gi = Path('.gitignore').read_text(encoding='utf-8')
     for patt in ["results/*.json", "results/*.jsonl", "results/*.md"]:
         assert patt in gi
+
+
+def test_adversarial_summary_markdown_has_tables():
+    run_adversarial_experiments()
+    md = Path("results/adversarial_summary.md").read_text(encoding="utf-8")
+    assert "# Adversarial Behavior Report" in md
+    assert "| Metric | Value |" in md
+    assert "| Category | Cases |" in md

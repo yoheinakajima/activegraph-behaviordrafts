@@ -1,6 +1,7 @@
 import time
 import uuid
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any, Dict, List, Optional
 
 from .events import Event
@@ -54,6 +55,47 @@ class SandboxContext:
             raise ValueError("max emitted events budget exceeded")
 
 
+class ReadOnlyGraphView:
+    def __init__(self, graph):
+        self._graph = graph
+
+    def get_object(self, object_id: str) -> Optional[Dict[str, Any]]:
+        obj = self._graph.objects.get(object_id)
+        return dict(obj) if obj else None
+
+    def objects_by_type(self, object_type: str) -> List[Dict[str, Any]]:
+        return [dict(obj) for obj in self._graph.objects.values() if obj.get("type") == object_type]
+
+    def relations_by_type(self, relation_type: str) -> List[Dict[str, Any]]:
+        return [dict(rel) for rel in self._graph.relations if rel.get("type") == relation_type]
+
+    def find_relations(self, from_id: Optional[str] = None, to_id: Optional[str] = None, type: Optional[str] = None) -> List[Dict[str, Any]]:
+        out = []
+        for rel in self._graph.relations:
+            if from_id is not None and rel.get("from") != from_id:
+                continue
+            if to_id is not None and rel.get("to") != to_id:
+                continue
+            if type is not None and rel.get("type") != type:
+                continue
+            out.append(dict(rel))
+        return out
+
+    def object_count(self) -> int:
+        return len(self._graph.objects)
+
+    def relation_count(self) -> int:
+        return len(self._graph.relations)
+
+    @property
+    def objects(self):
+        return MappingProxyType({k: MappingProxyType(dict(v)) for k, v in self._graph.objects.items()})
+
+    @property
+    def relations(self):
+        return tuple(MappingProxyType(dict(r)) for r in self._graph.relations)
+
+
 def _compile_behavior_source(source_code: str):
     safe_builtins = {"len": len, "sum": sum, "min": min, "max": max, "any": any, "all": all, "range": range}
     namespace: Dict[str, Any] = {"__builtins__": safe_builtins}
@@ -97,7 +139,7 @@ def run_behavior_sandbox(runtime: EventSourcedRuntime, draft, behavior_fn, trigg
             allowed_object_types=set(tests[0].expected_objects) if tests else set(),
             allowed_relation_types=set(tests[0].expected_relations) if tests else set(),
         )
-        selected_behavior(trigger_event.payload, fork.graph, ctx)
+        selected_behavior(trigger_event.payload, ReadOnlyGraphView(fork.graph), ctx)
         out_events = ctx.events()
         for ev in out_events:
             fork.apply_event(ev)
