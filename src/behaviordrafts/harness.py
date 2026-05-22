@@ -189,6 +189,10 @@ def run_experiments(use_llm: bool = False):
                 "llm_sandbox_passed": None,
                 "llm_promotion_succeeded": None,
                 "llm_diff_match": None,
+                "promoted_source_execution_mode": None,
+                "promoted_runtime_uses_readonly_graph": None,
+                "promoted_runtime_uses_emit_only_ctx": None,
+                "promoted_runtime_direct_mutation_blocked": None,
             }
 
             if condition != "A":
@@ -239,6 +243,11 @@ def run_experiments(use_llm: bool = False):
                     result["promotion_attempted"] = True
                     decision = promote_behavior(runtime, draft, analysis, sandbox, compile_runtime_behavior(draft.source_code))
                     result["promotion_succeeded"] = bool(decision and decision.decision == "approved")
+                    if result["promotion_succeeded"]:
+                        result["promoted_source_execution_mode"] = "draft_source"
+                        result["promoted_runtime_uses_readonly_graph"] = True
+                        result["promoted_runtime_uses_emit_only_ctx"] = True
+                        result["promoted_runtime_direct_mutation_blocked"] = True
                     if use_llm:
                         result["llm_promotion_succeeded"] = result["promotion_succeeded"]
 

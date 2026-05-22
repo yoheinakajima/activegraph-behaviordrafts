@@ -28,23 +28,47 @@ class SandboxRun:
     sandbox_executed_generated_source: bool
 
 
-class SandboxContext:
-    def __init__(self, budgets: Dict[str, Any], allowed_object_types: set[str], allowed_relation_types: set[str]):
+class EmitOnlyBehaviorContext:
+    __slots__ = ("_events", "_budgets", "_allowed_object_types", "_allowed_relation_types", "_metadata")
+
+    def __init__(
+        self,
+        budgets: Dict[str, Any],
+        allowed_object_types: set[str],
+        allowed_relation_types: set[str],
+        metadata: Optional[Dict[str, Any]] = None,
+    ):
         self._events: List[Event] = []
         self._budgets = budgets
         self._allowed_object_types = allowed_object_types
         self._allowed_relation_types = allowed_relation_types
+        self._metadata = dict(metadata or {})
+
+    def __getattribute__(self, name: str):
+        if name == "__dict__":
+            raise AttributeError("context internals are not accessible")
+        return object.__getattribute__(self, name)
+
+    def _with_metadata(self, payload: Dict[str, Any], entity_key: str) -> Dict[str, Any]:
+        out = dict(payload)
+        meta = dict(self._metadata)
+        if entity_key in out and isinstance(out[entity_key], dict):
+            entity = dict(out[entity_key])
+            existing_meta = entity.get("provenance") if isinstance(entity.get("provenance"), dict) else {}
+            entity["provenance"] = {**existing_meta, **meta}
+            out[entity_key] = entity
+        return out
 
     def emit_object_created(self, obj: Dict[str, Any]) -> None:
         if self._allowed_object_types and obj.get("type") not in self._allowed_object_types:
             raise ValueError("object type not allowed")
-        self._events.append(Event("object.created", {"object": obj}))
+        self._events.append(Event("object.created", self._with_metadata({"object": obj}, "object")))
         self._enforce_event_budget()
 
     def emit_relation_created(self, relation: Dict[str, Any]) -> None:
         if self._allowed_relation_types and relation.get("type") not in self._allowed_relation_types:
             raise ValueError("relation type not allowed")
-        self._events.append(Event("relation.created", {"relation": relation}))
+        self._events.append(Event("relation.created", self._with_metadata({"relation": relation}, "relation")))
         self._enforce_event_budget()
 
     def events(self) -> List[Event]:
@@ -110,9 +134,9 @@ def _compile_behavior_source(source_code: str):
 def compile_runtime_behavior(source_code: str):
     behavior = _compile_behavior_source(source_code)
 
-    def runtime_behavior(event, graph):
-        ctx = SandboxContext({}, set(), set())
-        behavior(event.payload, graph, ctx)
+    def runtime_behavior(event, graph, metadata: Optional[Dict[str, Any]] = None):
+        ctx = EmitOnlyBehaviorContext({}, set(), set(), metadata=metadata)
+        behavior(event.payload, ReadOnlyGraphView(graph), ctx)
         return ctx.events()
 
     return runtime_behavior
@@ -134,7 +158,7 @@ def run_behavior_sandbox(runtime: EventSourcedRuntime, draft, behavior_fn, trigg
             source_compiled = True
             source_execution_mode = "draft_source"
             sandbox_executed_generated_source = True
-        ctx = SandboxContext(
+        ctx = EmitOnlyBehaviorContext(
             budgets=budgets,
             allowed_object_types=set(tests[0].expected_objects) if tests else set(),
             allowed_relation_types=set(tests[0].expected_relations) if tests else set(),
