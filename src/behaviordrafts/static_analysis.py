@@ -38,7 +38,10 @@ def run_static_analysis(draft):
     except SyntaxError as e:
         return StaticAnalysisReport(str(uuid.uuid4()), draft.id, False, [], [], [], False, False, False, False, [], [], False, [str(e)])
 
+    behavior_signature_ok = False
     for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "behavior":
+            behavior_signature_ok = len(node.args.args) == 3
         if isinstance(node, ast.Import):
             for n in node.names:
                 mod = n.name.split(".")[0]
@@ -59,7 +62,9 @@ def run_static_analysis(draft):
 
     undeclared = [i for i in imports if i not in draft.declared_dependencies and i not in {"typing"}]
     permission_violations = [n for n in names if n in FORBIDDEN_NAMES]
-    analysis_passed = syntax_ok and not forbidden_imports and not forbidden_calls and not undeclared and not permission_violations
+    analysis_passed = syntax_ok and behavior_signature_ok and not forbidden_imports and not forbidden_calls and not undeclared and not permission_violations
+    if not behavior_signature_ok:
+        errors.append("behavior function with signature (event, graph, ctx) is required")
     return StaticAnalysisReport(str(uuid.uuid4()), draft.id, syntax_ok, sorted(set(imports)), sorted(set(forbidden_imports)),
                                 sorted(set(forbidden_calls)), "open" in forbidden_calls, bool(forbidden_imports),
                                 "subprocess" in forbidden_imports, any(x in forbidden_calls for x in ["eval", "exec", "compile"]),

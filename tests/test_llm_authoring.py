@@ -8,7 +8,7 @@ def test_valid_llm_json_becomes_draft(monkeypatch):
     payload = {
         "name": "x",
         "description": "d",
-        "source_code": "def behavior(event, graph):\n return []",
+        "source_code": "def behavior(event, graph, ctx):\n pass",
         "declared_trigger_events": ["object.created"],
         "declared_scope": {},
         "declared_inputs": [],
@@ -40,7 +40,7 @@ def test_llm_unsafe_code_fails_static_and_no_promotion(monkeypatch):
     payload = {
         "name": "x",
         "description": "d",
-        "source_code": "def behavior(event, graph):\n eval('1')",
+        "source_code": "def behavior(event, graph, ctx):\n eval('1')",
     }
     monkeypatch.setenv("OPENAI_API_KEY", "x")
     monkeypatch.setattr("behaviordrafts.llm_author._call_openai", lambda *args, **kwargs: json.dumps(payload))
@@ -54,7 +54,7 @@ def test_llm_mode_records_prompt_model_hash(monkeypatch):
     payload = {
         "name": "x",
         "description": "d",
-        "source_code": "def behavior(event, graph):\n return []",
+        "source_code": "def behavior(event, graph, ctx):\n pass",
     }
     monkeypatch.setenv("OPENAI_API_KEY", "x")
     monkeypatch.setenv("BEHAVIORDRAFTS_MODEL", "gpt-test")

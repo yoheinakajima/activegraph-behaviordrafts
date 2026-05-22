@@ -4,19 +4,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
-from .demo_behaviors import file_summary_behavior, provenance_auditor_behavior
 from .drafts import author_behavior_draft_fixture, author_behavior_tests
 from .llm_author import author_behavior_draft_with_llm, llm_available
 from .events import Event
 from .promotion import disable_behavior, promote_behavior
 from .reporting import write_json, write_jsonl
 from .runtime import EventSourcedRuntime
-from .sandbox import run_behavior_sandbox
+from .sandbox import compile_runtime_behavior, run_behavior_sandbox
 from .static_analysis import run_static_analysis
-
-
-def _fn_for_goal(goal_name: str):
-    return file_summary_behavior if "summary" in goal_name else provenance_auditor_behavior
 
 
 def _diff_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
@@ -56,7 +51,7 @@ def _semantic_diff_matches(goal_name: str, trigger_object: Dict[str, Any], diff:
         changes = trigger_object.get("changes", [])
         missing = sum(1 for c in changes if not c.get("provenance"))
         return (
-            evaluation.get("patch_proposal_id") in (None, trigger_object.get("id"))
+            evaluation.get("patch_proposal_id") == trigger_object.get("id")
             and evaluation.get("missing_provenance_count") == missing
             and evaluation.get("passes") == (missing == 0)
         )
@@ -160,7 +155,6 @@ def run_experiments(use_llm: bool = False):
     for condition in ["A", "B", "C"]:
         for goal in goals:
             runtime = EventSourcedRuntime()
-            behavior_fn = _fn_for_goal(goal["goal_name"])
             expected_diff = goal["expected_diff"]
 
             result: Dict[str, Any] = {
@@ -215,7 +209,7 @@ def run_experiments(use_llm: bool = False):
                 tests = author_behavior_tests(draft, goal)
                 analysis = run_static_analysis(draft)
                 trigger = Event("object.created", {"object": goal["trigger_object"]})
-                sandbox = run_behavior_sandbox(runtime, draft, behavior_fn, trigger, tests, goal["budgets"])
+                sandbox = run_behavior_sandbox(runtime, draft, None, trigger, tests, goal["budgets"], analysis_passed=analysis.analysis_passed)
 
                 result.update(
                     {
@@ -233,13 +227,17 @@ def run_experiments(use_llm: bool = False):
                         "llm_static_analysis_passed": analysis.analysis_passed if use_llm else None,
                         "llm_sandbox_passed": sandbox.sandbox_passed if use_llm else None,
                         "llm_diff_match": (_diff_matches(expected_diff, sandbox.structural_diff) and _semantic_diff_matches(goal["goal_name"], goal["trigger_object"], sandbox.structural_diff)) if use_llm else None,
+                        "source_execution_mode": sandbox.source_execution_mode,
+                        "source_compiled": sandbox.source_compiled,
+                        "source_execution_error": sandbox.source_execution_error,
+                        "sandbox_executed_generated_source": sandbox.sandbox_executed_generated_source,
                     }
                 )
 
                 decision = None
                 if condition == "C":
                     result["promotion_attempted"] = True
-                    decision = promote_behavior(runtime, draft, analysis, sandbox, behavior_fn)
+                    decision = promote_behavior(runtime, draft, analysis, sandbox, compile_runtime_behavior(draft.source_code))
                     result["promotion_succeeded"] = bool(decision and decision.decision == "approved")
                     if use_llm:
                         result["llm_promotion_succeeded"] = result["promotion_succeeded"]
