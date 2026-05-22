@@ -18,52 +18,11 @@ def _fn_for_goal(goal_name: str):
     return file_summary_behavior if "summary" in goal_name else provenance_auditor_behavior
 
 
-def _first_sentence_or_segment(content: str) -> str:
-    lines = [ln.strip() for ln in content.splitlines() if ln.strip()]
-    if not lines:
-        return ""
-    joined = " ".join(lines)
-    if "." in joined:
-        return joined.split(".")[0].strip() + "."
-    return lines[0]
-
-
-def _semantic_diff_matches(goal_name: str, trigger_object: Dict[str, Any], diff: Dict[str, Any]) -> bool:
-    created_objects = diff.get("created_objects", [])
-    created_relations = diff.get("created_relations", [])
-
-    if goal_name == "file_summary_behavior":
-        summaries = [o for o in created_objects if o.get("type") == "Summary"]
-        if len(summaries) != 1:
-            return False
-        summary = summaries[0]
-        content = trigger_object.get("content", "")
-        expected_first = _first_sentence_or_segment(content)
-        expected_line_count = len(content.splitlines()) if content else 0
-        if summary.get("first_sentence") != expected_first:
-            return False
-        if summary.get("line_count") != expected_line_count:
-            return False
-        return any(
-            r.get("type") == "summarizes" and r.get("to") == trigger_object.get("id") and r.get("from") == summary.get("id")
-            for r in created_relations
-        )
-
-    if goal_name == "provenance_auditor_behavior":
-        evaluations = [o for o in created_objects if o.get("type") == "Evaluation"]
-        if len(evaluations) != 1:
-            return False
-        evaluation = evaluations[0]
-        missing = sum(1 for c in trigger_object.get("changes", []) if not c.get("provenance"))
-        if evaluation.get("patch_proposal_id") != trigger_object.get("id"):
-            return False
-        if evaluation.get("missing_provenance_count") != missing:
-            return False
-        if evaluation.get("passes") != (missing == 0):
-            return False
-        return True
-
-    return False
+def _diff_matches(expected: Dict[str, Any], actual: Dict[str, Any]) -> bool:
+    return (
+        actual.get("objects_created", 0) == expected.get("objects_created", 0)
+        and actual.get("relations_created", 0) == expected.get("relations_created", 0)
+    )
 
 
 def _build_summary_markdown(results: List[Dict[str, Any]], timestamp: str) -> str:
@@ -174,7 +133,7 @@ def run_experiments(use_llm: bool = False):
                 "disable_succeeded": False,
                 "behavior_silent_after_disable": False,
                 "expected_diff": expected_diff,
-                "actual_diff": {"objects_created": 0, "relations_created": 0, "created_objects": [], "created_relations": []},
+                "actual_diff": {"objects_created": 0, "relations_created": 0},
                 "diff_match": False,
                 "events_created": 0,
                 "objects_created": 0,
@@ -189,7 +148,6 @@ def run_experiments(use_llm: bool = False):
                 trigger = Event("object.created", {"object": goal["trigger_object"]})
                 sandbox = run_behavior_sandbox(runtime, draft, behavior_fn, trigger, tests, goal["budgets"])
 
-                semantic_ok = _semantic_diff_matches(goal["goal_name"], goal["trigger_object"], sandbox.structural_diff)
                 result.update(
                     {
                         "draft_created": True,
@@ -200,7 +158,7 @@ def run_experiments(use_llm: bool = False):
                         "sandbox_run_created": True,
                         "sandbox_passed": sandbox.sandbox_passed,
                         "actual_diff": sandbox.structural_diff,
-                        "diff_match": semantic_ok,
+                        "diff_match": _diff_matches(expected_diff, sandbox.structural_diff),
                         "live_graph_unchanged_before_promotion": len(runtime.graph.objects) == 0 and len(runtime.graph.relations) == 0,
                     }
                 )

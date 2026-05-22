@@ -11,13 +11,11 @@ class GraphState:
         return GraphState(objects={k: dict(v) for k, v in self.objects.items()}, relations=[dict(r) for r in self.relations])
 
     def structural_diff(self, other: "GraphState") -> Dict[str, Any]:
-        created_object_ids = [oid for oid in self.objects if oid not in other.objects]
-        created_objects = [self.objects[oid] for oid in created_object_ids]
+        created_objects = [oid for oid in self.objects if oid not in other.objects]
         created_relations = [r for r in self.relations if r not in other.relations]
         return {
-            "objects_created": len(created_object_ids),
+            "objects_created": len(created_objects),
             "relations_created": len(created_relations),
-            "created_object_ids": created_object_ids,
-            "created_objects": created_objects,
+            "created_object_ids": created_objects,
             "created_relations": created_relations,
         }
