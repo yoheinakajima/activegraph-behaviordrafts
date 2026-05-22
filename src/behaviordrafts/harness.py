@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 
 from .demo_behaviors import file_summary_behavior, provenance_auditor_behavior
 from .drafts import author_behavior_draft_fixture, author_behavior_tests
+from .llm_author import author_behavior_draft_with_llm, llm_available
 from .events import Event
 from .promotion import disable_behavior, promote_behavior
 from .reporting import write_json, write_jsonl
@@ -97,6 +98,8 @@ def _build_summary_markdown(results: List[Dict[str, Any]], timestamp: str) -> st
             )
         )
 
+    by_mode = {"fixture": [r for r in results if r.get("authoring_mode") == "fixture"], "llm": [r for r in results if r.get("authoring_mode") == "llm"]}
+
     return "\n".join(
         [
             "# Behavior Draft Experiment Summary",
@@ -136,6 +139,13 @@ def _build_summary_markdown(results: List[Dict[str, Any]], timestamp: str) -> st
             "Condition C can promote scoped behavior after validation, enabling the two demo capabilities while preserving "
             "live graph isolation before promotion.",
             "",
+            "## Fixture vs LLM Authorship",
+            "",
+            "| Authoring Mode | Drafts | Parsed | Static Pass | Sandbox Pass | Promotions | Diff Matches |",
+            "|---|---:|---:|---:|---:|---:|---:|",
+            f"| fixture | {len(by_mode['fixture'])} | {sum(1 for r in by_mode['fixture'] if r.get('llm_parsed_ok', True))} | {sum(1 for r in by_mode['fixture'] if r.get('static_analysis_passed'))} | {sum(1 for r in by_mode['fixture'] if r.get('sandbox_passed'))} | {sum(1 for r in by_mode['fixture'] if r.get('promotion_succeeded'))} | {sum(1 for r in by_mode['fixture'] if r.get('diff_match'))} |",
+            f"| llm | {len(by_mode['llm'])} | {sum(1 for r in by_mode['llm'] if r.get('llm_parsed_ok'))} | {sum(1 for r in by_mode['llm'] if r.get('llm_static_analysis_passed', r.get('static_analysis_passed')))} | {sum(1 for r in by_mode['llm'] if r.get('llm_sandbox_passed', r.get('sandbox_passed')))} | {sum(1 for r in by_mode['llm'] if r.get('llm_promotion_succeeded', r.get('promotion_succeeded')))} | {sum(1 for r in by_mode['llm'] if r.get('llm_diff_match', r.get('diff_match')))} |",
+            "",
         ]
     )
 
@@ -156,6 +166,7 @@ def run_experiments(use_llm: bool = False):
             result: Dict[str, Any] = {
                 "condition": condition,
                 "goal": goal["goal_name"],
+                "authoring_mode": "llm" if use_llm else "fixture",
                 "draft_created": False,
                 "draft_valid_syntax": False,
                 "static_analysis_passed": False,
@@ -177,10 +188,30 @@ def run_experiments(use_llm: bool = False):
                 "objects_created": 0,
                 "relations_created": 0,
                 "errors": [],
+                "llm_attempted": False,
+                "llm_parsed_ok": None,
+                "llm_parse_error": None,
+                "llm_static_analysis_passed": None,
+                "llm_sandbox_passed": None,
+                "llm_promotion_succeeded": None,
+                "llm_diff_match": None,
             }
 
             if condition != "A":
-                draft = author_behavior_draft_fixture(goal["goal_name"], goal)
+                if use_llm:
+                    result["llm_attempted"] = True
+                    draft, llm_meta = author_behavior_draft_with_llm(goal, {"condition": condition, "goal": goal["goal_name"]})
+                    result["llm_parsed_ok"] = llm_meta.get("parsed_ok")
+                    result["llm_parse_error"] = llm_meta.get("parse_error")
+                else:
+                    draft = author_behavior_draft_fixture(goal["goal_name"], goal)
+
+                if draft is None:
+                    drafts_log.append({"authoring_mode": "llm", "goal": goal["goal_name"], "condition": condition, "parse_error": result["llm_parse_error"]})
+                    all_results.append(result)
+                    write_json(f"results/{condition}_{goal['goal_name']}.json", result)
+                    continue
+
                 tests = author_behavior_tests(draft, goal)
                 analysis = run_static_analysis(draft)
                 trigger = Event("object.created", {"object": goal["trigger_object"]})
@@ -199,6 +230,9 @@ def run_experiments(use_llm: bool = False):
                         "diff_match": _diff_matches(expected_diff, sandbox.structural_diff)
                         and _semantic_diff_matches(goal["goal_name"], goal["trigger_object"], sandbox.structural_diff),
                         "live_graph_unchanged_before_promotion": len(runtime.graph.objects) == 0 and len(runtime.graph.relations) == 0,
+                        "llm_static_analysis_passed": analysis.analysis_passed if use_llm else None,
+                        "llm_sandbox_passed": sandbox.sandbox_passed if use_llm else None,
+                        "llm_diff_match": (_diff_matches(expected_diff, sandbox.structural_diff) and _semantic_diff_matches(goal["goal_name"], goal["trigger_object"], sandbox.structural_diff)) if use_llm else None,
                     }
                 )
 
@@ -207,6 +241,8 @@ def run_experiments(use_llm: bool = False):
                     result["promotion_attempted"] = True
                     decision = promote_behavior(runtime, draft, analysis, sandbox, behavior_fn)
                     result["promotion_succeeded"] = bool(decision and decision.decision == "approved")
+                    if use_llm:
+                        result["llm_promotion_succeeded"] = result["promotion_succeeded"]
 
                 if decision and decision.decision == "approved":
                     binding_id = next(iter(runtime.behaviors))
@@ -245,4 +281,9 @@ def run_experiments(use_llm: bool = False):
     write_jsonl("results/events.jsonl", events_log)
     write_jsonl("results/drafts.jsonl", drafts_log)
     write_jsonl("results/sandbox_runs.jsonl", sandboxes)
+    llm_rows = [r for r in drafts_log if r.get("authoring_mode") == "llm" or r.get("created_by") == "llm"]
+    if use_llm:
+        write_jsonl("results/llm_drafts.jsonl", llm_rows)
+        write_jsonl("results/llm_prompts.jsonl", [{"goal": r.get("created_from_goal"), "prompt_hash": r.get("prompt_hash"), "model": r.get("model_used"), "provenance": r.get("provenance", {})} for r in llm_rows])
+        write_jsonl("results/llm_raw_responses.jsonl", [{"goal": r.get("created_from_goal"), "raw_response": r.get("provenance", {}).get("raw_response", ""), "parse_error": r.get("provenance", {}).get("parse_error")} for r in llm_rows])
     return all_results
