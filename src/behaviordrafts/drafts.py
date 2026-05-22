@@ -22,6 +22,8 @@ class BehaviorDraft:
     created_from_goal: str
     model_used: str
     prompt_hash: str
+    authoring_mode: str
+    provenance: Dict[str, Any]
     status: str
 
 
@@ -47,7 +49,8 @@ def author_behavior_draft_fixture(name: str, goal: Dict[str, Any]) -> BehaviorDr
         declared_trigger_events=["object.created"], declared_scope=goal["scope"], declared_inputs=["event", "graph"],
         declared_outputs=["events"], declared_permissions=["emit.object.created"], declared_dependencies=goal.get("declared_dependencies", []),
         expected_emitted_events=["object.created"], expected_graph_mutations=goal["expected_diff"], created_by="fixture",
-        created_from_goal=goal["goal_name"], model_used="none", prompt_hash=hashlib.sha256(source.encode()).hexdigest(), status="drafted"
+        created_from_goal=goal["goal_name"], model_used="none", prompt_hash=hashlib.sha256(source.encode()).hexdigest(),
+        authoring_mode="fixture", provenance={"authoring_mode": "fixture"}, status="drafted"
     )
 
 
