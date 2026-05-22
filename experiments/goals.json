@@ -1,0 +1,30 @@
+[
+  {
+    "goal_name": "file_summary_behavior",
+    "description": "When a source file is ingested, create a Summary object with first sentence and line count.",
+    "scope": {"object_type": "File"},
+    "source_code": "def behavior(event, graph):\n    obj = event['payload']['object']\n    content = obj.get('content','')\n    first = (content.split('.')[0].strip()+'.') if '.' in content else content.strip()\n    line_count = len(content.splitlines()) if content else 0\n    return []\n",
+    "declared_dependencies": [],
+    "fixture_events": [],
+    "expected_events": ["object.created"],
+    "expected_objects": ["Summary"],
+    "expected_relations": ["summarizes"],
+    "expected_diff": {"objects_created": 1, "relations_created": 1},
+    "trigger_object": {"id": "file-1", "type": "File", "content": "First sentence.\nSecond line."},
+    "budgets": {"max_emitted_events": 5, "max_objects_created": 3, "max_relations_created": 3, "max_runtime_seconds": 2}
+  },
+  {
+    "goal_name": "provenance_auditor_behavior",
+    "description": "When a PatchProposal is created, create an Evaluation if provenance is missing.",
+    "scope": {"object_type": "PatchProposal"},
+    "source_code": "def behavior(event, graph):\n    obj = event['payload']['object']\n    changes = obj.get('changes', [])\n    missing = sum(1 for c in changes if not c.get('provenance'))\n    return []\n",
+    "declared_dependencies": [],
+    "fixture_events": [],
+    "expected_events": ["object.created"],
+    "expected_objects": ["Evaluation"],
+    "expected_relations": [],
+    "expected_diff": {"objects_created": 1, "relations_created": 0},
+    "trigger_object": {"id": "patch-1", "type": "PatchProposal", "changes": [{"path": "a.py"}, {"path": "b.py", "provenance": "trace-1"}]},
+    "budgets": {"max_emitted_events": 3, "max_objects_created": 2, "max_relations_created": 1, "max_runtime_seconds": 2}
+  }
+]
