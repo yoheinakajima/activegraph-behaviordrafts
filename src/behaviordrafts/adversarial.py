@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -52,7 +53,12 @@ def adversarial_cases() -> List[AdversarialCase]:
         ("disallowed_object_type", "sandbox_reject", fs, "def behavior(event, graph, ctx):\n    ctx.emit_object_created({'id':'x','type':'NotAllowed'})\n", True, False, False, False, True),
         ("disallowed_relation_type", "sandbox_reject", fs, "def behavior(event, graph, ctx):\n    o=event['object']\n    sid=f\"summary-{o['id']}\"\n    ctx.emit_object_created({'id':sid,'type':'Summary','first_sentence':'x.','line_count':1})\n    ctx.emit_relation_created({'type':'links','from':sid,'to':o['id']})\n", True, False, False, False, True),
         ("raises_exception", "sandbox_reject", fs, "def behavior(event, graph, ctx):\n    raise RuntimeError('boom')\n", True, False, False, False, True),
-        ("mutates_graph_directly", "sandbox_reject", fs, "def behavior(event, graph, ctx):\n    graph.objects['x']={'id':'x','type':'Summary'}\n", True, True, False, False, True),
+        ("mutates_graph_directly", "static_reject", fs, "def behavior(event, graph, ctx):\n    graph.objects['x']={'id':'x','type':'Summary'}\n", False, False, False, False, True),
+        ("mutates_graph_clear", "static_reject", fs, "def behavior(event, graph, ctx):\n    graph.objects.clear()\n", False, False, False, False, True),
+        ("mutates_graph_rel_append", "static_reject", fs, "def behavior(event, graph, ctx):\n    graph.relations.append({'type':'summarizes'})\n", False, False, False, False, True),
+        ("mutates_graph_setattr", "static_reject", fs, "def behavior(event, graph, ctx):\n    setattr(graph, 'objects', {})\n", False, False, False, False, True),
+        ("ctx_runtime_access", "static_reject", fs, "def behavior(event, graph, ctx):\n    ctx.runtime.append_event(event)\n", False, False, False, False, True),
+        ("ctx_dunder_dict_mutation", "static_reject", fs, "def behavior(event, graph, ctx):\n    ctx.__dict__['_events'] = []\n", False, False, False, False, True),
         ("summary_wrong_line_count", "semantic_reject", fs, "def behavior(event, graph, ctx):\n    o=event['object']\n    sid=f\"summary-{o['id']}\"\n    ctx.emit_object_created({'id':sid,'type':'Summary','first_sentence':'First sentence.','line_count':999})\n    ctx.emit_relation_created({'type':'summarizes','from':sid,'to':o['id']})\n", True, True, False, False, True),
         ("summary_missing_relation", "semantic_reject", fs, "def behavior(event, graph, ctx):\n    o=event['object']\n    sid=f\"summary-{o['id']}\"\n    ctx.emit_object_created({'id':sid,'type':'Summary','first_sentence':'First sentence.','line_count':2})\n", True, True, False, False, True),
         ("summary_wrong_first_sentence", "semantic_reject", fs, "def behavior(event, graph, ctx):\n    o=event['object']\n    sid=f\"summary-{o['id']}\"\n    ctx.emit_object_created({'id':sid,'type':'Summary','first_sentence':'Wrong.','line_count':2})\n    ctx.emit_relation_created({'type':'summarizes','from':sid,'to':o['id']})\n", True, True, False, False, True),
@@ -127,10 +133,31 @@ def run_adversarial_experiments() -> Dict[str, Any]:
         "promotions_succeeded": sum(1 for r in rows if r["promotion_succeeded"]),
         "rejected_promotions": sum(1 for r in rows if not r["promotion_succeeded"]),
         "live_graph_violations": sum(1 for r in rows if not r["live_graph_unchanged"]),
+        "direct_mutation_cases": sum(1 for r in rows if "mutat" in r["case_id"] or r["case_id"].startswith("ctx_")),
+        "direct_mutation_rejected": sum(1 for r in rows if ("mutat" in r["case_id"] or r["case_id"].startswith("ctx_")) and (not r["static_analysis_passed"] or not r["sandbox_passed"])),
     }
 
     write_json("results/adversarial_summary.json", summary)
-    md = "# Adversarial Summary\n\n" + "\n".join(f"- {k}: {v}" for k, v in summary.items())
+    timestamp = datetime.now(timezone.utc).isoformat()
+    md = (
+        "# Adversarial Behavior Report\n\n"
+        f"Generated: `{timestamp}`\n\n"
+        "## Aggregate Metrics\n\n"
+        "| Metric | Value |\n|---|---:|\n"
+        + "\n".join(f"| {k} | {v} |" for k, v in summary.items())
+        + "\n\n## Category Breakdown\n\n| Category | Cases |\n|---|---:|\n"
+        + "\n".join([
+            f"| static_reject | {summary['static_reject_cases']} |",
+            f"| sandbox_reject | {summary['sandbox_reject_cases']} |",
+            f"| semantic_reject | {summary['semantic_reject_cases']} |",
+            f"| benign_control | {summary['benign_control_cases']} |",
+        ])
+        + "\n\n## Unexpected Outcomes\n\n"
+        + (("- None.\n") if summary["cases_matching_expectation"] == summary["total_cases"] else "")
+        + "\n".join(f"- `{r['case_id']}`: expected mismatch." for r in rows if not r["outcome_matches_expectation"])
+        + "\n\n## Interpretation\n\n"
+        "Direct mutation attempts are now expected to be rejected by static checks (or sandbox if they execute), while benign control cases must still promote successfully.\n"
+    )
     write_jsonl("results/adversarial_cases.jsonl", rows)
     Path("results/adversarial_summary.md").write_text(md + "\n", encoding="utf-8")
     return {"summary": summary, "cases": rows}
