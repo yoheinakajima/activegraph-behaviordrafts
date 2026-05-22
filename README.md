@@ -29,3 +29,5 @@ python scripts/run_all.py --llm
 ```
 
 Default execution is deterministic and requires no API key.
+
+Note: `results/` artifacts are generated outputs and are intentionally untracked; regenerate locally with `python scripts/run_all.py`.

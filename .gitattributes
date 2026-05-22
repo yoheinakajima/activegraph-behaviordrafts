@@ -1,0 +1,7 @@
+# Keep line endings stable across platforms
+* text=auto eol=lf
+
+# Generated artifacts are local outputs; avoid noisy merge behavior if ever tracked
+results/*.json -merge
+results/*.jsonl -merge
+results/*.md -merge
