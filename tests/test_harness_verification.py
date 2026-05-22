@@ -62,3 +62,17 @@ def test_provenance_semantic_match_rejects_bad_missing_count():
         "created_relations": [],
     }
     assert not _semantic_diff_matches("provenance_auditor_behavior", trigger, bad_diff)
+
+
+def test_provenance_semantic_match_rejects_missing_patch_proposal_id():
+    trigger = {"id": "patch-1", "type": "PatchProposal", "changes": [{"path": "a.py"}]}
+    bad_diff = {
+        "created_objects": [{
+            "id": "eval-patch-1",
+            "type": "Evaluation",
+            "missing_provenance_count": 1,
+            "passes": False,
+        }],
+        "created_relations": [],
+    }
+    assert not _semantic_diff_matches("provenance_auditor_behavior", trigger, bad_diff)
