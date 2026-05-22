@@ -19,5 +19,11 @@ def provenance_auditor_behavior(event, graph):
     changes = obj.get("changes", [])
     missing = sum(1 for c in changes if not c.get("provenance"))
     eid = f"eval-{obj['id']}"
-    evaluation = {"id": eid, "type": "Evaluation", "passes": missing == 0, "missing_provenance_count": missing}
+    evaluation = {
+        "id": eid,
+        "type": "Evaluation",
+        "patch_proposal_id": obj["id"],
+        "passes": missing == 0,
+        "missing_provenance_count": missing,
+    }
     return [Event("object.created", {"object": evaluation})]
