@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, List
 from .events import Event
 from .graph import GraphState
 
-BehaviorFn = Callable[[Event, GraphState], List[Event]]
+BehaviorFn = Callable[[Event, GraphState, Dict[str, Any]], List[Event]]
 
 
 @dataclass
@@ -56,7 +56,14 @@ class EventSourcedRuntime:
             if not behavior.enabled or behavior.fn is None:
                 continue
             if self._scope_match(behavior, event):
-                for out_event in behavior.fn(event, self.graph):
+                metadata = {
+                    "emitted_by": "promoted_behavior",
+                    "source_draft_id": behavior.draft_id,
+                    "behavior_binding_id": behavior.id,
+                    "triggering_event_id": event.id,
+                    "triggering_event_type": event.event_type,
+                }
+                for out_event in behavior.fn(event, self.graph, metadata):
                     self.apply_event(out_event)
 
     def fork(self) -> "EventSourcedRuntime":

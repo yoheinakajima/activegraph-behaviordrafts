@@ -12,5 +12,5 @@ def test_promotion_requires_gates():
     t = author_behavior_tests(d, goal)
     a = run_static_analysis(d)
     s = run_behavior_sandbox(EventSourcedRuntime(), d, None, Event("object.created", {"object":{"id":"1","type":"PatchProposal","changes":[{}]}}), t, {"max_emitted_events":3,"max_objects_created":2,"max_relations_created":1,"max_runtime_seconds":2})
-    dec = promote_behavior(EventSourcedRuntime(), d, a, s, lambda event, graph: [])
+    dec = promote_behavior(EventSourcedRuntime(), d, a, s, lambda event, graph, metadata: [])
     assert dec.decision == "approved"
