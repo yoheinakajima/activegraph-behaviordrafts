@@ -1,0 +1,13 @@
+{"event_type": "behavior.bound", "payload": {"binding_id": "9e71e5c7-3552-4c59-9a9b-1a4ea83c489d", "draft_id": "feef0627-2942-44f6-a1d3-1c464ec65008"}, "id": "53583634-8030-4436-bdc2-a27e4d6333d5"}
+{"event_type": "object.created", "payload": {"object": {"id": "file-1", "type": "File", "content": "First sentence.\nSecond line."}}, "id": "b2f8fc1c-0df8-4234-94c1-2f59ab1962dd"}
+{"event_type": "object.created", "payload": {"object": {"id": "summary-file-1", "type": "Summary", "first_sentence": "First sentence.", "line_count": 2}}, "id": "44b8fc9e-3d87-4497-8a32-367c1448480b"}
+{"event_type": "relation.created", "payload": {"relation": {"type": "summarizes", "from": "summary-file-1", "to": "file-1"}}, "id": "d154761e-1164-45cc-a594-4b0407d67477"}
+{"event_type": "object.created", "payload": {"object": {"id": "unrelated-1", "type": "Unrelated"}}, "id": "26e837bd-eb32-45cd-a086-36b23e24ad06"}
+{"event_type": "behavior.disabled", "payload": {"behavior_binding_id": "9e71e5c7-3552-4c59-9a9b-1a4ea83c489d"}, "id": "65f2ae38-0ce5-45e4-8abe-c6a38af1207d"}
+{"event_type": "object.created", "payload": {"object": {"id": "file-1", "type": "File", "content": "First sentence.\nSecond line."}}, "id": "b2f8fc1c-0df8-4234-94c1-2f59ab1962dd"}
+{"event_type": "behavior.bound", "payload": {"binding_id": "58f9e34a-fdc4-42ac-a734-028d107cb4d1", "draft_id": "46b336bd-1ab5-4d31-bc38-7bd7a5bb7ee7"}, "id": "1fc45920-16ec-476d-845d-a46996efedb9"}
+{"event_type": "object.created", "payload": {"object": {"id": "patch-1", "type": "PatchProposal", "changes": [{"path": "a.py"}, {"path": "b.py", "provenance": "trace-1"}]}}, "id": "d11f7cd4-31b5-4858-ae38-b1d29c35ccf3"}
+{"event_type": "object.created", "payload": {"object": {"id": "eval-patch-1", "type": "Evaluation", "passes": false, "missing_provenance_count": 1}}, "id": "3e28df35-93f7-411c-a6df-aa8fd21ad3e3"}
+{"event_type": "object.created", "payload": {"object": {"id": "unrelated-1", "type": "Unrelated"}}, "id": "aef0fa1c-ff90-456f-9169-8f51322ee8b0"}
+{"event_type": "behavior.disabled", "payload": {"behavior_binding_id": "58f9e34a-fdc4-42ac-a734-028d107cb4d1"}, "id": "0dc368f5-7ef0-4b2c-8505-c06055a2dcf3"}
+{"event_type": "object.created", "payload": {"object": {"id": "patch-1", "type": "PatchProposal", "changes": [{"path": "a.py"}, {"path": "b.py", "provenance": "trace-1"}]}}, "id": "d11f7cd4-31b5-4858-ae38-b1d29c35ccf3"}
