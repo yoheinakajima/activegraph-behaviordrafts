@@ -13,10 +13,41 @@ def _count_true(rows, key):
     return sum(1 for r in rows if bool(r.get(key)))
 
 
+def _has_core_result_files():
+    required = [
+        RESULTS / "summary.json",
+        RESULTS / "adversarial_cases.jsonl",
+        RESULTS / "adversarial_summary.json",
+    ]
+    return all(path.exists() for path in required)
+
+
 def build_tables():
+    live_summary_path = RESULTS / "live_llm_summary.json"
+    live_summary = _load_json(live_summary_path) if live_summary_path.exists() else None
+
+    if not _has_core_result_files():
+        out = {
+            "table_1_deterministic_lifecycle_baseline": [],
+            "table_2_behavior_draft_lifecycle_gates": [],
+            "table_3_adversarial_containment": [],
+            "table_4_runtime_parity_authority_boundary": [],
+            "verification_summary": {
+                "demonstrates": "Core lifecycle result files are not present in this results directory.",
+                "does_not_demonstrate": "No deterministic lifecycle aggregation can be computed without summary/adversarial artifacts.",
+                "supports_claim": "Not evaluated in this run context.",
+                "limitations": "Run `scripts/run_all.py` and `scripts/run_adversarial.py` to regenerate core artifacts.",
+            },
+        }
+        if live_summary is not None:
+            out["table_5_live_llm_authorship_run"] = [{"row": "live_llm_authorship", **live_summary}]
+        return out
+
     summary_rows = _load_json(RESULTS / "summary.json")
     adv_rows = [json.loads(l) for l in (RESULTS / "adversarial_cases.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
     adv_summary = _load_json(RESULTS / "adversarial_summary.json")
+    live_summary_path = RESULTS / "live_llm_summary.json"
+    live_summary = _load_json(live_summary_path) if live_summary_path.exists() else None
 
     by_cond = defaultdict(list)
     for r in summary_rows:
@@ -112,7 +143,13 @@ def build_tables():
         "limitations": "Current corpus is narrow, adversarial set is finite, and runtime authority containment is empirical within this harness rather than formal proof.",
     }
 
-    return {"table_1_deterministic_lifecycle_baseline": t1, "table_2_behavior_draft_lifecycle_gates": t2, "table_3_adversarial_containment": t3, "table_4_runtime_parity_authority_boundary": t4, "verification_summary": narrative}
+    out = {"table_1_deterministic_lifecycle_baseline": t1, "table_2_behavior_draft_lifecycle_gates": t2, "table_3_adversarial_containment": t3, "table_4_runtime_parity_authority_boundary": t4, "verification_summary": narrative}
+
+    if live_summary is not None:
+        t5 = [{"row": "live_llm_authorship", **live_summary}]
+        out["table_5_live_llm_authorship_run"] = t5
+
+    return out
 
 
 def _md_table(rows):
@@ -134,7 +171,14 @@ def main():
         ("Table 4: Runtime parity / authority boundary", "table_4_runtime_parity_authority_boundary"),
     ]
     for t, k in titles:
-        md += [f"## {t}", "", _md_table(tables[k]), ""]
+        if tables[k]:
+            md += [f"## {t}", "", _md_table(tables[k]), ""]
+
+    if "table_5_live_llm_authorship_run" in tables:
+        md += ["## Table 5: Live LLM Authorship Run", "", _md_table(tables["table_5_live_llm_authorship_run"]), ""]
+    else:
+        md += ["## Table 5: Live LLM Authorship Run", "", "Live LLM results not present (`results/live_llm_summary.json` not found).", ""]
+
     n = tables["verification_summary"]
     md += ["## Verification summary", "", f"- **What the current system demonstrates:** {n['demonstrates']}", f"- **What it does not demonstrate:** {n['does_not_demonstrate']}", f"- **Why this supports the paper claim \"code without authority\":** {n['supports_claim']}", f"- **Remaining limitations:** {n['limitations']}", ""]
     (RESULTS / "paper_tables.md").write_text("\n".join(md), encoding="utf-8")
