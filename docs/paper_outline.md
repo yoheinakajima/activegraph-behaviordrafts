@@ -12,13 +12,13 @@ Rationale: it foregrounds the key novelty (authority separation), the mechanism 
 
 ## 2. One-paragraph thesis
 
-This paper argues that in an event-sourced agent runtime, generated behavior code can be treated as *proposals without authority* until it passes explicit verification gates. In our design, code is first represented as an inert `BehaviorDraft`, then validated by static checks, executed in a forked sandbox, compared against goal-specific semantic diffs, and only promoted when all checks pass. Promoted behavior runs through the same constrained runtime surface used during sandboxing—`behavior(event, graph, ctx)` with read-only graph access and emit-only action context—so authority remains scoped and auditable. Across deterministic A/B/C lifecycle runs, adversarial containment tests, and a narrow two-goal live LLM smoke test, results support lifecycle correctness and containment claims while intentionally not claiming broad reliability, secure arbitrary code execution, or open-ended recursive self-improvement.
+This paper argues that in an event-sourced agent runtime, generated behavior code can be treated as *proposals without authority* until it passes explicit verification gates. In our design, code is first represented as an inert `BehaviorDraft`, then validated by static checks, executed in a forked sandbox, compared against goal-specific semantic diffs, and only promoted when all checks pass. Promoted behavior runs through the same constrained runtime surface used during sandboxing—`behavior(event, graph, ctx)` with read-only graph access and emit-only action context—so authority remains scoped and auditable. Across deterministic A/B/C lifecycle runs, adversarial containment tests, and a bounded 23-goal/69-trial live LLM matrix run, results support lifecycle correctness and containment claims while intentionally not claiming broad reliability, secure arbitrary code execution, or open-ended recursive self-improvement.
 
 ## 3. Abstract draft
 
 Event-sourced agent systems provide strong auditability for state transitions, but typical “self-modification” mechanisms in these systems are graph-native and bounded: they can rebind behavior and mutate graph state, yet do not safely authorize new code. We present a BehaviorDraft lifecycle for ActiveGraph that separates code authorship from runtime authority. Candidate behavior is first captured as inert draft data, then passed through static analysis, executed in a forked sandbox, and validated by semantic diff checks against goal-level expectations. Only then can it be promoted to live scoped behavior. Crucially, promoted execution preserves interface parity with sandbox validation: both use `behavior(event, graph, ctx)` with read-only graph access and emit-only context capabilities.
 
-In deterministic lifecycle evaluation (6 runs across conditions A/B/C), we observe the expected progression: no behavior addition in graph-only baseline (A), inert draft validation without live authority (B), and successful gated promotion with matching-event firing, nonmatching silence, and disable semantics (C). In adversarial containment evaluation (29 hand-authored cases), all cases match expected outcomes with 0 unexpected passes, 0 unexpected failures, and 0 live graph violations. In a narrow live LLM authorship smoke test (model: `gpt-4o-mini`, 2 goals), both attempts parse, pass gates, match semantic diffs, and promote successfully. We frame these results as evidence for lifecycle containment and auditable authority transfer, not as evidence of broad model reliability, secure arbitrary code execution, or open-ended recursive self-improvement.
+In deterministic lifecycle evaluation (6 runs across conditions A/B/C), we observe the expected progression: no behavior addition in graph-only baseline (A), inert draft validation without live authority (B), and successful gated promotion with matching-event firing, nonmatching silence, and disable semantics (C). In adversarial containment evaluation (29 hand-authored cases), all cases match expected outcomes with 0 unexpected passes, 0 unexpected failures, and 0 live graph violations. In a bounded local live LLM matrix run (model: `gpt-4o-mini`, 23 goals × 3 trials = 69 attempts), 69/69 attempts parse with no parse failures, and 59/69 complete full lifecycle success; failures are concentrated in semantic diff (5), sandbox (3), and static analysis (2), with no promotion/matching/nonmatching/disable failures. We frame these results as evidence for lifecycle containment and auditable authority transfer, not as evidence of broad model reliability, secure arbitrary code execution, or open-ended recursive self-improvement.
 
 ## 4. Contributions
 
@@ -27,7 +27,7 @@ In deterministic lifecycle evaluation (6 runs across conditions A/B/C), we obser
 3. **A staged verification lifecycle** combining static analysis, forked sandbox execution, and semantic diff validation before promotion.
 4. **Sandbox-to-live runtime parity** via the same callable interface and boundary (`behavior(event, graph, ctx)`, `ReadOnlyGraphView`, `EmitOnlyBehaviorContext`).
 5. **Adversarial containment evaluation frame** with categorized rejection paths (static, sandbox/budget, semantic).
-6. **A paper-ready measurement scaffold for bounded self-modification**, including deterministic baselines and live authorship smoke-test metrics.
+6. **A paper-ready measurement scaffold for bounded self-modification**, including deterministic baselines and bounded live authorship matrix metrics.
 
 ## 5. Paper outline
 
@@ -35,7 +35,7 @@ In deterministic lifecycle evaluation (6 runs across conditions A/B/C), we obser
 - Motivate why “code generation” and “code authority” must be decoupled in agent runtimes.
 - Identify gap between graph-native self-change and safe code promotion.
 - State the paper’s central claim: code without authority until gates pass.
-- Preview empirical evidence: deterministic lifecycle, adversarial containment, live smoke test.
+- Preview empirical evidence: deterministic lifecycle, adversarial containment, live bounded matrix run.
 - Clarify bounded scope and explicit non-claims.
 
 ### 2. Background: ActiveGraph and selfgraph
@@ -62,7 +62,7 @@ In deterministic lifecycle evaluation (6 runs across conditions A/B/C), we obser
 - Deterministic A/B/C lifecycle design and goals.
 - Adversarial corpus design and category definitions.
 - Runtime parity checks between sandbox and promoted paths.
-- Live LLM smoke test setup (two-goal, narrow scope).
+- Live LLM matrix setup (23 goals, 3 trials each; bounded scope).
 - Metrics collected and pass/fail criteria.
 
 ### 6. Results
@@ -70,7 +70,7 @@ In deterministic lifecycle evaluation (6 runs across conditions A/B/C), we obser
 - Gate-wise success/rejection accounting.
 - Adversarial containment totals and zero-violation result.
 - Runtime parity evidence.
-- Live smoke test outcomes and confidence boundaries.
+- Live matrix outcomes and confidence boundaries.
 
 ### 7. Discussion
 - Interpret results as containment/auditability evidence.
@@ -115,9 +115,9 @@ Adversarial evaluation includes **29 cases**, with **29/29 matching expectation*
 
 A key design requirement is parity between sandbox validation and promoted execution. In this system, both paths use the same callable form `behavior(event, graph, ctx)`, the same `ReadOnlyGraphView` abstraction for graph access, and the same `EmitOnlyBehaviorContext` for action emission. Promoted execution additionally preserves provenance metadata injection and supports explicit disable behavior, preserving audit continuity across lifecycle stages. This parity strengthens the interpretation of sandbox results: promotion does not switch to a broader authority surface than the one validated pre-promotion.
 
-### 6.5 Live LLM authorship smoke test
+### 6.5 Live LLM authorship matrix (bounded corpus)
 
-We include a narrow live authorship smoke test using **`gpt-4o-mini`** over **2 goals**. Outcomes are: **2 attempts**, **2 parsed**, **2 static-analysis passed**, **2 sandbox passed**, **2 semantic diff matched**, **2 promoted**, with **0 parse failures**, **0 static failures**, **0 sandbox failures**, and **0 semantic-diff failures**. Matching-event firing, nonmatching silence, and disable checks also succeed in both promoted runs. We interpret this strictly as a feasibility smoke test for integrating model-authored drafts into the same gated lifecycle; it is not evidence of broad live LLM reliability across tasks, prompts, models, or adversarial prompt conditions.
+We include a bounded local live authorship matrix using **`gpt-4o-mini`** over **23 goals** with **3 trials per goal** (**69 attempts**). Outcomes are: **69/69 parsed** with **0 parse failures** and **59/69 full lifecycle successes**. No failures occur in promotion, matching-event firing, nonmatching silence, or disable checks. Observed failures are concentrated in **semantic diff (5)**, **sandbox (3)**, and **static analysis (2)**. We interpret this strictly as bounded-corpus lifecycle feasibility and observability, not evidence of broad live LLM reliability across tasks, prompts, models, or adversarial prompt conditions.
 
 ## 7. Tables to include
 
@@ -141,9 +141,9 @@ We include a narrow live authorship smoke test using **`gpt-4o-mini`** over **2 
 - **Supports claim:** sandbox and promoted runtime share constrained source interface and capability boundary.
 - **Does not prove:** OS-level isolation or capability-secure execution of arbitrary Python.
 
-### Table 5: Live LLM Authorship Run
+### Table 5: Live LLM Authorship Matrix Run
 - **Source artifact:** `results/live_llm_summary.json` when available; otherwise reported run metrics from current local live run logs/summary.
-- **Supports claim:** end-to-end feasibility of model-authored draft passing through gates into scoped promotion for two goals.
+- **Supports claim:** end-to-end feasibility of model-authored drafts passing through gates into scoped promotion in a bounded 23-goal/69-trial matrix.
 - **Does not prove:** broad live LLM reliability, stability across models, or long-horizon behavior quality.
 
 ## 8. Figures to include
@@ -152,7 +152,7 @@ We include a narrow live authorship smoke test using **`gpt-4o-mini`** over **2 
 2. **Authority boundary diagram**: LLM/code authoring outside authority boundary; promotion gate grants scoped runtime authority.
 3. **Sandbox vs promoted runtime parity diagram**: shared callable and capability boundary (`behavior(event, graph, ctx)`, read-only graph, emit-only context).
 4. **Adversarial containment funnel**: counts rejected at static, sandbox/budget, semantic stages plus benign controls.
-5. **Live LLM smoke-test path**: model output to parsed draft to gates to promoted behavior outcomes.
+5. **Live LLM matrix path**: model output to parsed draft to gates to promoted behavior outcomes.
 
 ## 9. Claims and non-claims
 
@@ -162,7 +162,7 @@ We include a narrow live authorship smoke test using **`gpt-4o-mini`** over **2 
 | Multi-gate lifecycle can block policy-violating or semantically invalid drafts before promotion. | 29-case adversarial containment with 29/29 expected outcomes. | Adversarial set is finite and hand-authored. |
 | Promoted behavior can run under the same constrained interface used in sandbox validation. | Runtime parity checks and promoted-run fields. | Not a proof of full sandbox/process security. |
 | Gated promotion can preserve matching-event fire, nonmatching silence, and disable semantics. | Condition C deterministic runs and benign controls. | Evaluated on limited behaviors/goals. |
-| Live model-authored drafts can pass the lifecycle in a narrow smoke test. | Two-goal live `gpt-4o-mini` run with full pass. | Too small to support broad reliability claims. |
+| Live model-authored drafts can pass the lifecycle in a bounded matrix run. | 23-goal / 69-trial local live `gpt-4o-mini` run with 59 full lifecycle successes and 69 parsed attempts. | Still a bounded corpus on one model; not broad reliability evidence. |
 
 ### Non-claims
 - No claim of open-ended recursive self-improvement.
@@ -173,7 +173,7 @@ We include a narrow live authorship smoke test using **`gpt-4o-mini`** over **2 
 
 ## 10. Limitations
 
-- Live LLM measurement is only two goals.
+- Live LLM measurement remains bounded (23 goals, 69 trials) and single-model.
 - Deterministic goal corpus is small.
 - Adversarial corpus is hand-authored and finite.
 - Static analysis is pattern-based and not formally complete.
