@@ -1,5 +1,8 @@
 # Live LLM Matrix Results Snapshot
 
+> **Labeling correction (2026-05-23):** This snapshot is from the repository's local runtime substrate and should be treated as **pre-integration local-runtime results**, not ActiveGraph-backed results.
+
+
 ## Current primary snapshot (local)
 
 This document records the **current primary local live matrix snapshot** for this repository.
