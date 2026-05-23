@@ -124,32 +124,46 @@ class ActiveGraphAdapter:
         self._shim.apply_event(event)
 
     def all_objects(self):
+        if self._shim.graph.objects:
+            return list(self._shim.graph.objects.values())
         if self._ag_graph is not None:
             return [self.normalize_object(o) for o in self._ag_graph.all_objects()]
         return list(self._shim.graph.objects.values())
 
     def all_relations(self):
+        if self._shim.graph.relations:
+            return list(self._shim.graph.relations)
         if self._ag_graph is not None:
             return [self.normalize_relation(r) for r in self._ag_graph.all_relations()]
         return list(self._shim.graph.relations)
 
     def objects(self, type: Optional[str] = None):
+        if self._shim.graph.objects:
+            return [o for o in self._shim.graph.objects.values() if type is None or o.get("type") == type]
         if self._ag_graph is not None:
             return [self.normalize_object(o) for o in self._ag_graph.objects(type=type)]
         return [o for o in self._shim.graph.objects.values() if type is None or o.get("type") == type]
 
     def relations(self, type: Optional[str] = None, source: Optional[str] = None, target: Optional[str] = None):
+        if self._shim.graph.relations:
+            out = self._shim.graph.relations
+            return [r for r in out if (type is None or r.get("type") == type) and (source is None or r.get("from") == source) and (target is None or r.get("to") == target)]
         if self._ag_graph is not None:
             return [self.normalize_relation(r) for r in self._ag_graph.relations(source=source, target=target, type=type)]
         out = self._shim.graph.relations
         return [r for r in out if (type is None or r.get("type") == type) and (source is None or r.get("from") == source) and (target is None or r.get("to") == target)]
 
     def get_object(self, id_: str):
+        if id_ in self._shim.graph.objects:
+            return self._shim.graph.objects.get(id_)
         if self._ag_graph is not None:
             return self.normalize_object(self._ag_graph.get_object(id_))
         return self._shim.graph.objects.get(id_)
 
     def get_relation(self, id_: str):
+        for rel in self._shim.graph.relations:
+            if rel.get("id") == id_:
+                return rel
         if self._ag_graph is not None:
             return self.normalize_relation(self._ag_graph.get_relation(id_))
         for rel in self._shim.graph.relations:
