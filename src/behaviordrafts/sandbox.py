@@ -121,7 +121,7 @@ class ReadOnlyGraphView:
 
 
 def _compile_behavior_source(source_code: str):
-    safe_builtins = {"len": len, "sum": sum, "min": min, "max": max, "any": any, "all": all, "range": range}
+    safe_builtins = {"len": len, "sum": sum, "min": min, "max": max, "any": any, "all": all, "range": range, "enumerate": enumerate}
     namespace: Dict[str, Any] = {"__builtins__": safe_builtins}
     code = compile(source_code, "<draft_source>", "exec")
     exec(code, namespace, namespace)
