@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from behaviordrafts.live_llm_matrix import SEMANTIC_VALIDATORS, aggregate_summary, assign_failure_stage, semantic_diff_matches
+from behaviordrafts.live_llm_matrix import SEMANTIC_VALIDATORS, aggregate_summary, assign_failure_stage, semantic_diff_matches, validate_matrix_goal
 
 
 def test_live_goal_corpus_unique_and_required_fields():
@@ -49,3 +49,34 @@ def test_failure_stage_draft_construction_after_successful_parse():
         "disable_succeeded": False,
     }
     assert assign_failure_stage(case) == "draft_construction"
+
+
+def test_failure_stage_test_construction_after_draft_creation():
+    case = {
+        "goal_id": "g4",
+        "parsed_ok": True,
+        "draft_created": True,
+        "errors": ["test_construction_error: missing expected_diff"],
+        "static_analysis_passed": True,
+        "sandbox_passed": False,
+        "diff_match": False,
+        "promotion_attempted": False,
+        "promotion_succeeded": False,
+        "matching_event_fired": False,
+        "nonmatching_event_silent": False,
+        "disable_succeeded": False,
+    }
+    assert assign_failure_stage(case) == "test_construction"
+
+
+def test_validate_matrix_goal_catches_missing_required_fields():
+    goal = {
+        "goal_id": "bad",
+        "description": "bad goal",
+        "scope": {"object_type": "File"},
+    }
+    try:
+        validate_matrix_goal(goal)
+        assert False, "expected ValueError"
+    except ValueError as exc:
+        assert "missing required fields" in str(exc)

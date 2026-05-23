@@ -94,6 +94,18 @@ SEMANTIC_VALIDATORS: Dict[str, Callable[[Dict[str, Any], Dict[str, Any]], bool]]
 }
 
 
+def validate_matrix_goal(goal: Dict[str, Any]) -> None:
+    required = [
+        "goal_id", "description", "trigger_object", "scope", "budgets", "expected_objects",
+        "expected_relations", "expected_diff", "semantic_validator_type", "allowed_object_types", "allowed_relation_types",
+    ]
+    missing = [k for k in required if k not in goal]
+    if missing:
+        raise ValueError(f"goal {goal.get('goal_id', '<missing goal_id>')} missing required fields: {missing}")
+    if goal["semantic_validator_type"] not in SEMANTIC_VALIDATORS:
+        raise ValueError(f"goal {goal['goal_id']} has unknown semantic_validator_type: {goal['semantic_validator_type']}")
+
+
 def semantic_diff_matches(goal: Dict[str, Any], diff: Dict[str, Any]) -> bool:
     expected = goal.get("expected_diff", {})
     if diff.get("objects_created", 0) != expected.get("objects_created", 0):
@@ -109,6 +121,8 @@ def assign_failure_stage(case: Dict[str, Any]) -> FailureStage:
         return "parse"
     if not case.get("draft_created"):
         return "draft_construction"
+    if any(str(err).startswith("test_construction_error:") for err in case.get("errors", [])):
+        return "test_construction"
     if not case.get("static_analysis_passed"):
         return "static_analysis"
     if not case.get("sandbox_passed"):
@@ -138,6 +152,7 @@ def aggregate_summary(cases: List[Dict[str, Any]], model: str, goals: int, trial
     out["parse_failures"] = sum(1 for c in cases if c["failure_stage"] == "parse")
     out["static_failures"] = sum(1 for c in cases if c["failure_stage"] == "static_analysis")
     out["draft_construction_failures"] = sum(1 for c in cases if c["failure_stage"] == "draft_construction")
+    out["test_construction_failures"] = sum(1 for c in cases if c["failure_stage"] == "test_construction")
     out["sandbox_failures"] = sum(1 for c in cases if c["failure_stage"] == "sandbox")
     out["semantic_failures"] = sum(1 for c in cases if c["failure_stage"] == "semantic_diff")
     out["promotion_failures"] = sum(1 for c in cases if c["failure_stage"] == "promotion")

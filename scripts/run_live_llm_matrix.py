@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from behaviordrafts.drafts import author_behavior_tests
 from behaviordrafts.events import Event
-from behaviordrafts.live_llm_matrix import aggregate_summary, assign_failure_stage, build_markdown, semantic_diff_matches
+from behaviordrafts.live_llm_matrix import aggregate_summary, assign_failure_stage, build_markdown, semantic_diff_matches, validate_matrix_goal
 from behaviordrafts.llm_author import DEFAULT_MODEL, author_behavior_draft_with_llm
 from behaviordrafts.promotion import disable_behavior, promote_behavior
 from behaviordrafts.reporting import write_json, write_jsonl
@@ -31,6 +31,8 @@ def main():
         return 2
 
     goals = json.loads(Path("experiments/live_llm_goals.json").read_text(encoding="utf-8"))
+    for goal in goals:
+        validate_matrix_goal(goal)
     if args.goal_id:
         goals = [g for g in goals if g["goal_id"] in set(args.goal_id)]
     if args.goal_limit:
@@ -54,31 +56,34 @@ def main():
                 analysis = run_static_analysis(draft)
                 case["static_analysis_passed"] = analysis.analysis_passed
                 case["static_analysis_errors"] = analysis.errors
-                trigger = Event("object.created", {"object": goal["trigger_object"]})
-                sandbox = run_behavior_sandbox(runtime, draft, None, trigger, author_behavior_tests(draft, goal), goal["budgets"], analysis_passed=analysis.analysis_passed)
-                case["sandbox_created"] = True
-                case["sandbox_passed"] = sandbox.sandbox_passed
-                case["source_compiled"] = sandbox.source_compiled
-                case["sandbox_executed_generated_source"] = sandbox.sandbox_executed_generated_source
-                case["source_execution_error"] = sandbox.source_execution_error
-                case["diff_match"] = sandbox.sandbox_passed and semantic_diff_matches(goal, sandbox.structural_diff)
-                if (not args.no_promote) and case["parsed_ok"] and case["static_analysis_passed"] and case["sandbox_passed"] and case["diff_match"]:
-                    case["promotion_attempted"] = True
-                    decision = promote_behavior(runtime, draft, analysis, sandbox, compile_runtime_behavior(draft.source_code))
-                    case["promotion_succeeded"] = decision.decision == "approved"
-                    if case["promotion_succeeded"]:
-                        bid = next(iter(runtime.behaviors))
-                        runtime.emit(trigger)
-                        allowed = set(goal.get("allowed_object_types", []))
-                        case["matching_event_fired"] = any(o.get("type") in allowed for o in runtime.graph.objects.values())
-                        before = len(runtime.events)
-                        runtime.emit(Event("object.created", {"object": {"id": "unrelated", "type": "Unrelated"}}))
-                        case["nonmatching_event_silent"] = len(runtime.events) == before + 1
-                        disable_behavior(runtime, bid)
-                        case["disable_succeeded"] = not runtime.behaviors[bid].enabled
-                        before2 = len(runtime.events)
-                        runtime.emit(trigger)
-                        case["behavior_silent_after_disable"] = len(runtime.events) == before2 + 1
+                try:
+                    trigger = Event("object.created", {"object": goal["trigger_object"]})
+                    sandbox = run_behavior_sandbox(runtime, draft, None, trigger, author_behavior_tests(draft, goal), goal["budgets"], analysis_passed=analysis.analysis_passed)
+                    case["sandbox_created"] = True
+                    case["sandbox_passed"] = sandbox.sandbox_passed
+                    case["source_compiled"] = sandbox.source_compiled
+                    case["sandbox_executed_generated_source"] = sandbox.sandbox_executed_generated_source
+                    case["source_execution_error"] = sandbox.source_execution_error
+                    case["diff_match"] = sandbox.sandbox_passed and semantic_diff_matches(goal, sandbox.structural_diff)
+                    if (not args.no_promote) and case["parsed_ok"] and case["static_analysis_passed"] and case["sandbox_passed"] and case["diff_match"]:
+                        case["promotion_attempted"] = True
+                        decision = promote_behavior(runtime, draft, analysis, sandbox, compile_runtime_behavior(draft.source_code))
+                        case["promotion_succeeded"] = decision.decision == "approved"
+                        if case["promotion_succeeded"]:
+                            bid = next(iter(runtime.behaviors))
+                            runtime.emit(trigger)
+                            allowed = set(goal.get("allowed_object_types", []))
+                            case["matching_event_fired"] = any(o.get("type") in allowed for o in runtime.graph.objects.values())
+                            before = len(runtime.events)
+                            runtime.emit(Event("object.created", {"object": {"id": "unrelated", "type": "Unrelated"}}))
+                            case["nonmatching_event_silent"] = len(runtime.events) == before + 1
+                            disable_behavior(runtime, bid)
+                            case["disable_succeeded"] = not runtime.behaviors[bid].enabled
+                            before2 = len(runtime.events)
+                            runtime.emit(trigger)
+                            case["behavior_silent_after_disable"] = len(runtime.events) == before2 + 1
+                except Exception as exc:
+                    case["errors"].append(f"test_construction_error: {exc}")
             case["failure_stage"] = assign_failure_stage(case)
             case["outcome"] = "passed" if case["failure_stage"] == "none" else "failed"
             cases.append(case)
