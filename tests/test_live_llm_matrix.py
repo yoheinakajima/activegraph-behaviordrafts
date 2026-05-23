@@ -80,3 +80,25 @@ def test_validate_matrix_goal_catches_missing_required_fields():
         assert False, "expected ValueError"
     except ValueError as exc:
         assert "missing required fields" in str(exc)
+
+
+def test_summary_validator_rejects_missing_required_fields():
+    goal = {
+        "trigger_object": {"id": "f1", "content": "A.\nB"},
+        "expected_diff": {"objects_created": 1, "relations_created": 1},
+        "semantic_validator_type": "summary_validator",
+    }
+    missing_first = {
+        "objects_created": 1,
+        "relations_created": 1,
+        "created_objects": [{"type": "Summary", "line_count": 2}],
+        "created_relations": [{"type": "summarizes", "to": "f1"}],
+    }
+    missing_count = {
+        "objects_created": 1,
+        "relations_created": 1,
+        "created_objects": [{"type": "Summary", "first_sentence": "A."}],
+        "created_relations": [{"type": "summarizes", "to": "f1"}],
+    }
+    assert not semantic_diff_matches(goal, missing_first)
+    assert not semantic_diff_matches(goal, missing_count)

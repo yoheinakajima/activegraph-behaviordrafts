@@ -74,6 +74,64 @@ def llm_available() -> bool:
     return bool(os.getenv("OPENAI_API_KEY"))
 
 
+def _validator_requirements(goal: Dict[str, Any]) -> str:
+    vtype = goal.get("semantic_validator_type")
+    if vtype == "summary_validator":
+        return (
+            "Validator schema requirements (summary_validator):\n"
+            "- Emit exactly 1 created object with fields: id, type=\"Summary\", first_sentence, line_count.\n"
+            "- Emit exactly 1 created relation with fields: type=\"summarizes\", from=<summary id>, to=<source object id>.\n"
+        )
+    if vtype == "todo_extractor_validator":
+        return (
+            "Validator schema requirements (todo_extractor_validator):\n"
+            "- Emit one created object of type=\"TodoFinding\" per TODO line in obj.get(\"content\", \"\").\n"
+            "- Each TodoFinding must include id, type, and content text containing the TODO line.\n"
+            "- Include file_id set to obj.get(\"id\") for traceability.\n"
+            "- Do not emit relations unless expected_relations is non-empty.\n"
+        )
+    if vtype == "heading_count_validator":
+        return (
+            "Validator schema requirements (heading_count_validator):\n"
+            "- Emit exactly 1 created object with fields: id, type=\"HeadingCount\", count, file_id.\n"
+            "- count must equal number of lines in content where stripped line startswith '#'.\n"
+        )
+    if vtype == "url_extractor_validator":
+        return (
+            "Validator schema requirements (url_extractor_validator):\n"
+            "- Emit exactly 1 created object with fields: id, type=\"URLFinding\", url, file_id.\n"
+            "- url must be a string starting with http.\n"
+        )
+    if vtype == "classification_validator":
+        return (
+            "Validator schema requirements (classification_validator):\n"
+            "- Emit exactly 1 created classification object.\n"
+            "- Include fields id, type, label.\n"
+            "- type must be one of: FileTypeClassification, PriorityClassification, RiskClassification.\n"
+            "- label must equal goal.expected_label.\n"
+            "- Include source_id set to obj.get(\"id\") for traceability.\n"
+        )
+    if vtype == "missing_provenance_validator":
+        return (
+            "Validator schema requirements (missing_provenance_validator):\n"
+            "- Emit exactly 1 created object with fields: id, type=\"Evaluation\", patch_proposal_id, missing_provenance_count, passes.\n"
+            "- patch_proposal_id should reference obj.get(\"id\").\n"
+            "- missing_provenance_count must equal number of changes lacking provenance.\n"
+        )
+    if vtype == "relation_created_validator":
+        return (
+            "Validator schema requirements (relation_created_validator):\n"
+            "- Emit at least 1 relation matching expected_relations[0].\n"
+            "- Required relation fields: type, from, to.\n"
+        )
+    if vtype == "schema_violation_validator":
+        return (
+            "Validator schema requirements (schema_violation_validator):\n"
+            "- Emit exactly 1 created object with fields: id, type=\"Evaluation\", violates_schema, passes.\n"
+            "- Set violates_schema to a truthy value when violation is detected.\n"
+        )
+    return "Validator schema requirements: follow goal.expected_objects, goal.expected_relations, and expected_diff strictly.\n"
+
 def _build_prompt(goal: Dict[str, Any], fixture: Dict[str, Any]) -> str:
     return (
         "Author a single inert BehaviorDraft JSON object only.\\n"
@@ -98,6 +156,12 @@ def _build_prompt(goal: Dict[str, Any], fixture: Dict[str, Any]) -> str:
         "- Only emit allowed graph objects/relations through context helper.\\n"
         "- Keep source code short and auditable.\\n"
         "- Return strict JSON only (no markdown fences, no prose).\\n"
+        "- Code style constraints:\\n"
+        "  - Use double-quoted outer f-strings when accessing obj['id'], e.g., f\"summary-{obj['id']}\".\\n"
+        "  - Prefer simple for loops; enumerate is allowed.\\n"
+        "  - Always include id and type in every emitted object.\\n"
+        "  - Always assign obj = event[\"object\"] before reading fields.\\n"
+        "  - Never read event[\"content\"] or event[\"id\"] directly.\\n"
         "- Minimal summary pattern:\\n"
         "  obj = event[\"object\"]; content = obj.get(\"content\", \"\")\\n"
         "  ctx.emit_object_created({\"id\": f\"summary-{obj['id']}\", \"type\": \"Summary\"})\\n"
@@ -105,6 +169,7 @@ def _build_prompt(goal: Dict[str, Any], fixture: Dict[str, Any]) -> str:
         "- Minimal object-only pattern:\\n"
         "  obj = event[\"object\"]\\n"
         "  ctx.emit_object_created({\"id\": f\"warning-{obj['id']}\", \"type\": \"Warning\"})\\n"
+        f"{_validator_requirements(goal)}"
         f"Goal: {json.dumps(goal, sort_keys=True)}\\n"
         f"Fixture baseline: {json.dumps(fixture, sort_keys=True)}"
     )
