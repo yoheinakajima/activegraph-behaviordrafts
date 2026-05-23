@@ -17,6 +17,7 @@ def test_generate_paper_tables_without_live_files(tmp_path, monkeypatch):
     subprocess.run([sys.executable, str(Path(__file__).resolve().parents[1] / "scripts" / "generate_paper_tables.py")], check=True)
     out = Path("results/paper_tables.md").read_text(encoding="utf-8")
     assert "Live LLM results not present" in out
+    assert "Live LLM matrix results not present" in out
 
 
 def test_generate_paper_tables_with_live_files(tmp_path, monkeypatch):
@@ -28,9 +29,16 @@ def test_generate_paper_tables_with_live_files(tmp_path, monkeypatch):
         "promotions_succeeded": 2, "matching_event_fires": 2, "disable_succeeded": 2,
         "parse_failures": 0, "static_failures": 0, "sandbox_failures": 0, "semantic_failures": 0
     }), encoding="utf-8")
+    Path("results/live_llm_matrix_summary.json").write_text(json.dumps({
+        "model": "gpt-4o-mini", "goals": 3, "trials_per_goal": 1, "total_trials": 3, "parsed_ok": 3,
+        "static_analysis_passed": 3, "sandbox_passed": 3, "diff_matches": 3, "promotions_succeeded": 3,
+        "matching_event_fires": 3, "nonmatching_event_silent": 3, "disable_succeeded": 3, "full_successes": 3,
+        "per_failure_stage": {"none": 3}
+    }), encoding="utf-8")
     subprocess.run([sys.executable, str(Path(__file__).resolve().parents[1] / "scripts" / "generate_paper_tables.py")], check=True)
     out = Path("results/paper_tables.md").read_text(encoding="utf-8")
     assert "Table 5: Live LLM Authorship Run" in out
+    assert "Table 6: Live LLM Reliability Matrix" in out
     assert "gpt-4o-mini" in out
 
 

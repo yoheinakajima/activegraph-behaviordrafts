@@ -1,0 +1,1135 @@
+[
+  {
+    "goal_id": "file_summary_1",
+    "description": "Summarize file first sentence and line count.",
+    "trigger_object": {
+      "id": "f1",
+      "type": "File",
+      "content": "Alpha sentence.\nBeta line."
+    },
+    "scope": {
+      "object_type": "File"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "Summary"
+    ],
+    "expected_relations": [
+      "summarizes"
+    ],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 1
+    },
+    "semantic_validator_type": "summary_validator",
+    "allowed_object_types": [
+      "Summary",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "todo_extract_1",
+    "description": "Extract TODO comments into TodoFinding objects.",
+    "trigger_object": {
+      "id": "f2",
+      "type": "File",
+      "content": "# x\nTODO: one\nTODO: two"
+    },
+    "scope": {
+      "object_type": "File"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "TodoFinding"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 2,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "todo_extractor_validator",
+    "allowed_object_types": [
+      "TodoFinding",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "heading_count_1",
+    "description": "Count markdown headings.",
+    "trigger_object": {
+      "id": "f3",
+      "type": "File",
+      "content": "# A\ntext\n## B"
+    },
+    "scope": {
+      "object_type": "File"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "HeadingCount"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "heading_count_validator",
+    "allowed_object_types": [
+      "HeadingCount",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "url_extract_1",
+    "description": "Extract first URL.",
+    "trigger_object": {
+      "id": "f4",
+      "type": "File",
+      "content": "visit https://example.com and more"
+    },
+    "scope": {
+      "object_type": "File"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "URLFinding"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "url_extractor_validator",
+    "allowed_object_types": [
+      "URLFinding",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "todo_extract_2",
+    "description": "Extract TODO comments.",
+    "trigger_object": {
+      "id": "ft2",
+      "type": "File",
+      "content": "TODO: a"
+    },
+    "scope": {
+      "object_type": "File"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "TodoFinding"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "todo_extractor_validator",
+    "allowed_object_types": [
+      "TodoFinding",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "todo_extract_3",
+    "description": "Extract TODO comments.",
+    "trigger_object": {
+      "id": "ft3",
+      "type": "File",
+      "content": "TODO: a"
+    },
+    "scope": {
+      "object_type": "File"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "TodoFinding"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "todo_extractor_validator",
+    "allowed_object_types": [
+      "TodoFinding",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "todo_extract_4",
+    "description": "Extract TODO comments.",
+    "trigger_object": {
+      "id": "ft4",
+      "type": "File",
+      "content": "TODO: a"
+    },
+    "scope": {
+      "object_type": "File"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "TodoFinding"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "todo_extractor_validator",
+    "allowed_object_types": [
+      "TodoFinding",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "missing_prov_1",
+    "description": "Audit missing provenance.",
+    "trigger_object": {
+      "id": "p1",
+      "type": "PatchProposal",
+      "changes": [
+        {
+          "path": "a.py"
+        },
+        {
+          "path": "b.py",
+          "provenance": "t"
+        }
+      ]
+    },
+    "scope": {
+      "object_type": "PatchProposal"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "Evaluation"
+    ],
+    "expected_relations": [
+      "evaluates"
+    ],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "missing_provenance_validator",
+    "allowed_object_types": [
+      "Evaluation",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "evaluates",
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "missing_prov_2",
+    "description": "Audit missing provenance.",
+    "trigger_object": {
+      "id": "p2",
+      "type": "PatchProposal",
+      "changes": [
+        {
+          "path": "x.py"
+        }
+      ]
+    },
+    "scope": {
+      "object_type": "PatchProposal"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "Evaluation"
+    ],
+    "expected_relations": [
+      "evaluates"
+    ],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "missing_provenance_validator",
+    "allowed_object_types": [
+      "Evaluation",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "evaluates",
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "missing_prov_3",
+    "description": "Audit missing provenance.",
+    "trigger_object": {
+      "id": "p3",
+      "type": "PatchProposal",
+      "changes": [
+        {
+          "path": "x.py"
+        }
+      ]
+    },
+    "scope": {
+      "object_type": "PatchProposal"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "Evaluation"
+    ],
+    "expected_relations": [
+      "evaluates"
+    ],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "missing_provenance_validator",
+    "allowed_object_types": [
+      "Evaluation",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "evaluates",
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "missing_prov_4",
+    "description": "Audit missing provenance.",
+    "trigger_object": {
+      "id": "p4",
+      "type": "PatchProposal",
+      "changes": [
+        {
+          "path": "x.py"
+        }
+      ]
+    },
+    "scope": {
+      "object_type": "PatchProposal"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "Evaluation"
+    ],
+    "expected_relations": [
+      "evaluates"
+    ],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "missing_provenance_validator",
+    "allowed_object_types": [
+      "Evaluation",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "evaluates",
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "rel_task_owner",
+    "description": "Create assigned_to relation.",
+    "trigger_object": {
+      "id": "task-1",
+      "type": "Task",
+      "target": "user-1"
+    },
+    "scope": {
+      "object_type": "Task"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [],
+    "expected_relations": [
+      "assigned_to"
+    ],
+    "expected_diff": {
+      "objects_created": 0,
+      "relations_created": 1
+    },
+    "semantic_validator_type": "relation_created_validator",
+    "allowed_object_types": [
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "assigned_to",
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "rel_summary_source",
+    "description": "Create summarizes relation.",
+    "trigger_object": {
+      "id": "sum-1",
+      "type": "Task",
+      "target": "file-1"
+    },
+    "scope": {
+      "object_type": "Task"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [],
+    "expected_relations": [
+      "summarizes"
+    ],
+    "expected_diff": {
+      "objects_created": 0,
+      "relations_created": 1
+    },
+    "semantic_validator_type": "relation_created_validator",
+    "allowed_object_types": [
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "rel_eval_proposal",
+    "description": "Create evaluates relation.",
+    "trigger_object": {
+      "id": "eval-1",
+      "type": "Task",
+      "target": "patch-1"
+    },
+    "scope": {
+      "object_type": "Task"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [],
+    "expected_relations": [
+      "evaluates"
+    ],
+    "expected_diff": {
+      "objects_created": 0,
+      "relations_created": 1
+    },
+    "semantic_validator_type": "relation_created_validator",
+    "allowed_object_types": [
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "evaluates",
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "rel_child_parent",
+    "description": "Create parent_of relation.",
+    "trigger_object": {
+      "id": "task-child",
+      "type": "Task",
+      "target": "task-parent"
+    },
+    "scope": {
+      "object_type": "Task"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [],
+    "expected_relations": [
+      "parent_of"
+    ],
+    "expected_diff": {
+      "objects_created": 0,
+      "relations_created": 1
+    },
+    "semantic_validator_type": "relation_created_validator",
+    "allowed_object_types": [
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "parent_of",
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "schema_violation_1",
+    "description": "Create Evaluation when schema violated.",
+    "trigger_object": {
+      "id": "o1",
+      "type": "Record",
+      "required_field": null
+    },
+    "scope": {
+      "object_type": "Record"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "Evaluation"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "schema_violation_validator",
+    "allowed_object_types": [
+      "Evaluation",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "schema_violation_2",
+    "description": "Create Evaluation when schema violated.",
+    "trigger_object": {
+      "id": "o2",
+      "type": "Record",
+      "required_field": null
+    },
+    "scope": {
+      "object_type": "Record"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "Evaluation"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "schema_violation_validator",
+    "allowed_object_types": [
+      "Evaluation",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ]
+  },
+  {
+    "goal_id": "classify_file_py",
+    "description": "Classify file type by extension.",
+    "trigger_object": {
+      "id": "cf1",
+      "type": "File",
+      "path": "src/a.py"
+    },
+    "scope": {
+      "object_type": "File"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "FileTypeClassification"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "classification_validator",
+    "allowed_object_types": [
+      "FileTypeClassification",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ],
+    "expected_label": "python"
+  },
+  {
+    "goal_id": "classify_file_md",
+    "description": "Classify file type by extension.",
+    "trigger_object": {
+      "id": "cf2",
+      "type": "File",
+      "path": "README.md"
+    },
+    "scope": {
+      "object_type": "File"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "FileTypeClassification"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "classification_validator",
+    "allowed_object_types": [
+      "FileTypeClassification",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ],
+    "expected_label": "markdown"
+  },
+  {
+    "goal_id": "classify_priority_high",
+    "description": "Classify task priority.",
+    "trigger_object": {
+      "id": "ct1",
+      "type": "Task",
+      "text": "urgent blocker production"
+    },
+    "scope": {
+      "object_type": "Task"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "PriorityClassification"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "classification_validator",
+    "allowed_object_types": [
+      "PriorityClassification",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ],
+    "expected_label": "high"
+  },
+  {
+    "goal_id": "classify_priority_low",
+    "description": "Classify task priority.",
+    "trigger_object": {
+      "id": "ct2",
+      "type": "Task",
+      "text": "nice to have someday"
+    },
+    "scope": {
+      "object_type": "Task"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "PriorityClassification"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "classification_validator",
+    "allowed_object_types": [
+      "PriorityClassification",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ],
+    "expected_label": "low"
+  },
+  {
+    "goal_id": "classify_risk_high",
+    "description": "Classify proposal risk.",
+    "trigger_object": {
+      "id": "cr1",
+      "type": "PatchProposal",
+      "changes": [
+        {
+          "path": "src/security/auth.py"
+        },
+        {
+          "path": "src/core.py"
+        }
+      ]
+    },
+    "scope": {
+      "object_type": "PatchProposal"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "RiskClassification"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "classification_validator",
+    "allowed_object_types": [
+      "RiskClassification",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ],
+    "expected_label": "high"
+  },
+  {
+    "goal_id": "classify_risk_low",
+    "description": "Classify proposal risk.",
+    "trigger_object": {
+      "id": "cr2",
+      "type": "PatchProposal",
+      "changes": [
+        {
+          "path": "docs/readme.md"
+        }
+      ]
+    },
+    "scope": {
+      "object_type": "PatchProposal"
+    },
+    "budgets": {
+      "max_emitted_events": 6,
+      "max_objects_created": 4,
+      "max_relations_created": 3,
+      "max_runtime_seconds": 2
+    },
+    "expected_objects": [
+      "RiskClassification"
+    ],
+    "expected_relations": [],
+    "expected_diff": {
+      "objects_created": 1,
+      "relations_created": 0
+    },
+    "semantic_validator_type": "classification_validator",
+    "allowed_object_types": [
+      "RiskClassification",
+      "Evaluation",
+      "Summary",
+      "Warning",
+      "ReviewRequired",
+      "TodoFinding",
+      "HeadingCount",
+      "URLFinding",
+      "ImportFinding",
+      "FileTypeClassification",
+      "PriorityClassification",
+      "RiskClassification"
+    ],
+    "allowed_relation_types": [
+      "summarizes",
+      "assigned_to",
+      "evaluates",
+      "parent_of"
+    ],
+    "expected_label": "low"
+  }
+]

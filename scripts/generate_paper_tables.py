@@ -25,6 +25,8 @@ def _has_core_result_files():
 def build_tables():
     live_summary_path = RESULTS / "live_llm_summary.json"
     live_summary = _load_json(live_summary_path) if live_summary_path.exists() else None
+    matrix_summary_path = RESULTS / "live_llm_matrix_summary.json"
+    matrix_summary = _load_json(matrix_summary_path) if matrix_summary_path.exists() else None
 
     if not _has_core_result_files():
         out = {
@@ -41,6 +43,8 @@ def build_tables():
         }
         if live_summary is not None:
             out["table_5_live_llm_authorship_run"] = [{"row": "live_llm_authorship", **live_summary}]
+        if matrix_summary is not None:
+            out["table_6_live_llm_reliability_matrix"] = [{"row": "live_llm_matrix", **matrix_summary}]
         return out
 
     summary_rows = _load_json(RESULTS / "summary.json")
@@ -148,6 +152,26 @@ def build_tables():
     if live_summary is not None:
         t5 = [{"row": "live_llm_authorship", **live_summary}]
         out["table_5_live_llm_authorship_run"] = t5
+    if matrix_summary is not None:
+        top_failure = "none"
+        if matrix_summary.get("per_failure_stage"):
+            top_failure = max(matrix_summary["per_failure_stage"], key=matrix_summary["per_failure_stage"].get)
+        out["table_6_live_llm_reliability_matrix"] = [{
+            "row": "live_llm_matrix",
+            "model": matrix_summary.get("model"),
+            "goals": matrix_summary.get("goals"),
+            "total_trials": matrix_summary.get("total_trials"),
+            "full_successes": matrix_summary.get("full_successes"),
+            "parse_pass": matrix_summary.get("parsed_ok"),
+            "static_pass": matrix_summary.get("static_analysis_passed"),
+            "sandbox_pass": matrix_summary.get("sandbox_passed"),
+            "semantic_diff_pass": matrix_summary.get("diff_matches"),
+            "promotion_success": matrix_summary.get("promotions_succeeded"),
+            "matching_fire": matrix_summary.get("matching_event_fires"),
+            "nonmatching_silence": matrix_summary.get("nonmatching_event_silent"),
+            "disable_success": matrix_summary.get("disable_succeeded"),
+            "top_failure_stage": top_failure,
+        }]
 
     return out
 
@@ -178,6 +202,10 @@ def main():
         md += ["## Table 5: Live LLM Authorship Run", "", _md_table(tables["table_5_live_llm_authorship_run"]), ""]
     else:
         md += ["## Table 5: Live LLM Authorship Run", "", "Live LLM results not present (`results/live_llm_summary.json` not found).", ""]
+    if "table_6_live_llm_reliability_matrix" in tables:
+        md += ["## Table 6: Live LLM Reliability Matrix", "", _md_table(tables["table_6_live_llm_reliability_matrix"]), ""]
+    else:
+        md += ["## Table 6: Live LLM Reliability Matrix", "", "Live LLM matrix results not present (`results/live_llm_matrix_summary.json` not found).", ""]
 
     n = tables["verification_summary"]
     md += ["## Verification summary", "", f"- **What the current system demonstrates:** {n['demonstrates']}", f"- **What it does not demonstrate:** {n['does_not_demonstrate']}", f"- **Why this supports the paper claim \"code without authority\":** {n['supports_claim']}", f"- **Remaining limitations:** {n['limitations']}", ""]
