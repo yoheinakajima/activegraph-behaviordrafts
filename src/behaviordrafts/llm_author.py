@@ -24,6 +24,52 @@ def _extract_response_text(body: Dict[str, Any]) -> str:
     return ""
 
 
+def _extract_json_object_text(raw: str) -> str:
+    text = (raw or "").strip()
+    if not text:
+        raise ValueError("empty raw_response")
+    if text.startswith("```"):
+        parts = text.split("```")
+        for chunk in parts:
+            c = chunk.strip()
+            if not c:
+                continue
+            if c.lower().startswith("json"):
+                c = c[4:].strip()
+            if c.startswith("{") and c.endswith("}"):
+                return c
+    if text.startswith("{") and text.endswith("}"):
+        return text
+    start = text.find("{")
+    if start == -1:
+        raise ValueError("no JSON object found in raw_response")
+    depth = 0
+    in_str = False
+    escape = False
+    end = -1
+    for i, ch in enumerate(text[start:], start=start):
+        if in_str:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    if end == -1:
+        raise ValueError("unterminated JSON object in raw_response")
+    return text[start:end + 1]
+
+
 def llm_available() -> bool:
     return bool(os.getenv("OPENAI_API_KEY"))
 
@@ -35,8 +81,14 @@ def _build_prompt(goal: Dict[str, Any], fixture: Dict[str, Any]) -> str:
         "declared_permissions, declared_dependencies, expected_emitted_events, expected_graph_mutations, tests.\\n"
         "Safety constraints:\\n"
         "- source_code must define exactly one callable: def behavior(event, graph, ctx):\\n"
-        "- event is the trigger object payload as a dict (not an Event class).\\n"
+        "- event is a wrapper dict (not an Event class) shaped as {\"object\": <trigger_object_dict>}.\\n"
+        "- Always start by extracting the trigger object: obj = event[\"object\"].\\n"
+        "- Read trigger fields from obj, never directly from event.\\n"
+        "- Incorrect: content = event[\"content\"]\\n"
+        "- Correct: obj = event[\"object\"]; content = obj.get(\"content\", \"\")\\n"
         "- emit with ctx.emit_object_created(obj) and ctx.emit_relation_created(rel) only.\\n"
+        "- Objects passed to ctx.emit_object_created(obj) must be dicts with at least keys: id, type.\\n"
+        "- Relations passed to ctx.emit_relation_created(rel) must be dicts with keys: type, from, to.\\n"
         "- Do not import anything unless declared.\\n"
         "- Do not use filesystem, network, subprocess, eval, exec, open, compile, or dynamic import.\\n"
         "- Do not mutate global state.\\n"
@@ -45,6 +97,14 @@ def _build_prompt(goal: Dict[str, Any], fixture: Dict[str, Any]) -> str:
         "- Only read event and graph/context arguments.\\n"
         "- Only emit allowed graph objects/relations through context helper.\\n"
         "- Keep source code short and auditable.\\n"
+        "- Return strict JSON only (no markdown fences, no prose).\\n"
+        "- Minimal summary pattern:\\n"
+        "  obj = event[\"object\"]; content = obj.get(\"content\", \"\")\\n"
+        "  ctx.emit_object_created({\"id\": f\"summary-{obj['id']}\", \"type\": \"Summary\"})\\n"
+        "  ctx.emit_relation_created({\"type\": \"summarizes\", \"from\": f\"summary-{obj['id']}\", \"to\": obj[\"id\"]})\\n"
+        "- Minimal object-only pattern:\\n"
+        "  obj = event[\"object\"]\\n"
+        "  ctx.emit_object_created({\"id\": f\"warning-{obj['id']}\", \"type\": \"Warning\"})\\n"
         f"Goal: {json.dumps(goal, sort_keys=True)}\\n"
         f"Fixture baseline: {json.dumps(fixture, sort_keys=True)}"
     )
@@ -93,7 +153,8 @@ def author_behavior_draft_with_llm(goal: Dict[str, Any], fixture: Dict[str, Any]
     try:
         raw = _call_openai(prompt, chosen_model, os.getenv("OPENAI_API_KEY", ""))
         meta["raw_response"] = raw
-        payload = json.loads(raw)
+        json_text = _extract_json_object_text(raw)
+        payload = json.loads(json_text)
         meta["parsed_ok"] = True
         goal_name = get_goal_name(goal)
         draft = BehaviorDraft(
@@ -118,9 +179,12 @@ def author_behavior_draft_with_llm(goal: Dict[str, Any], fixture: Dict[str, Any]
             status="drafted",
         )
         return draft, meta
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, ValueError) as exc:
         meta["parse_error"] = str(exc)
         return None, meta
     except Exception as exc:
-        meta["draft_error"] = str(exc)
+        message = str(exc)
+        meta["draft_error"] = message
+        if not meta.get("parsed_ok") and not meta.get("parse_error"):
+            meta["parse_error"] = f"llm_call_error: {message}"
         return None, meta

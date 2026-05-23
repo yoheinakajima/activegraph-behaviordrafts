@@ -35,6 +35,7 @@ def run_static_analysis(draft):
     forbidden_calls = []
     names = set()
     permission_violations = []
+    event_wrapper_violations = []
     try:
         tree = ast.parse(draft.source_code)
         syntax_ok = True
@@ -91,8 +92,18 @@ def run_static_analysis(draft):
                 if node.func.value.value.id == "graph" and node.func.attr in FORBIDDEN_GRAPH_CALLS:
                     permission_violations.append(f"graph.{node.func.value.attr}.{node.func.attr}(...)")
 
+    source = draft.source_code
+    direct_event_patterns = [
+        'event["content"]', "event['content']",
+        'event["id"]', "event['id']",
+        'event.get("content")', "event.get('content')",
+    ]
+    for pat in direct_event_patterns:
+        if pat in source:
+            event_wrapper_violations.append(f"direct event field access forbidden in runtime wrapper: {pat}")
     undeclared = [i for i in imports if i not in draft.declared_dependencies and i not in {"typing"}]
     permission_violations.extend([n for n in names if n in FORBIDDEN_NAMES])
+    permission_violations.extend(event_wrapper_violations)
     analysis_passed = syntax_ok and behavior_signature_ok and not forbidden_imports and not forbidden_calls and not undeclared and not permission_violations
     if not behavior_signature_ok:
         errors.append("behavior function with signature (event, graph, ctx) is required")

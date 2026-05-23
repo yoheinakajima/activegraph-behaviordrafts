@@ -23,3 +23,11 @@ def test_static_analysis_blocks_direct_graph_and_ctx_internal_mutation():
     assert not r.analysis_passed
     assert any("graph.objects" in v for v in r.permission_violations)
     assert any("ctx.__dict__" in v for v in r.permission_violations)
+
+
+def test_static_analysis_blocks_direct_event_field_access():
+    goal = {"description":"x","source_code":"def behavior(event, graph, ctx):\n content = event['content']\n ctx.emit_object_created({'id':'x','type':'Summary'})","scope":{},"expected_diff":{},"goal_name":"g"}
+    d = author_behavior_draft_fixture("bad", goal)
+    r = run_static_analysis(d)
+    assert not r.analysis_passed
+    assert any("direct event field access forbidden" in v for v in r.permission_violations)

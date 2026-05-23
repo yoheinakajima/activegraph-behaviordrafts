@@ -1,7 +1,7 @@
 import json
 
 from behaviordrafts.harness import run_experiments
-from behaviordrafts.llm_author import _extract_response_text, author_behavior_draft_with_llm
+from behaviordrafts.llm_author import _extract_json_object_text, _extract_response_text, author_behavior_draft_with_llm
 
 
 def test_extract_response_text_from_output_array_shape():
@@ -80,6 +80,28 @@ def test_malformed_llm_json_records_parse_failure(monkeypatch):
     assert meta["parse_error"]
 
 
+def test_llm_call_exception_sets_parse_error_diagnostic(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "x")
+    def boom(*args, **kwargs):
+        raise RuntimeError("network down")
+    monkeypatch.setattr("behaviordrafts.llm_author._call_openai", boom)
+    draft, meta = author_behavior_draft_with_llm({"goal_name": "g"}, {"condition": "C"})
+    assert draft is None
+    assert not meta["parsed_ok"]
+    assert meta["parse_error"] == "llm_call_error: network down"
+    assert meta["draft_error"] == "network down"
+
+
+def test_extract_json_object_text_handles_fenced_json():
+    raw = "```json\n{\"name\":\"x\"}\n```"
+    assert _extract_json_object_text(raw) == "{\"name\":\"x\"}"
+
+
+def test_extract_json_object_text_handles_prose_wrapped_json():
+    raw = "Here is your draft:\n{\"name\":\"x\",\"description\":\"d\"}\nDone."
+    assert _extract_json_object_text(raw) == "{\"name\":\"x\",\"description\":\"d\"}"
+
+
 def test_llm_unsafe_code_fails_static_and_no_promotion(monkeypatch):
     payload = {
         "name": "x",
@@ -108,3 +130,14 @@ def test_llm_mode_records_prompt_model_hash(monkeypatch):
     assert rows
     assert all(r["model"] == "gpt-test" for r in rows)
     assert all(r["prompt_hash"] for r in rows)
+
+
+def test_post_parse_goal_metadata_error_is_not_labeled_parse_error(monkeypatch):
+    payload = {"name": "x", "description": "d", "source_code": "def behavior(event, graph, ctx):\n pass"}
+    monkeypatch.setenv("OPENAI_API_KEY", "x")
+    monkeypatch.setattr("behaviordrafts.llm_author._call_openai", lambda *args, **kwargs: json.dumps(payload))
+    draft, meta = author_behavior_draft_with_llm({}, {"condition": "C"})
+    assert draft is None
+    assert meta["parsed_ok"] is True
+    assert meta["parse_error"] is None
+    assert meta["draft_error"]
