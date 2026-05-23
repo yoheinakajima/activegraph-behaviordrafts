@@ -41,12 +41,12 @@ class ActiveGraphAdapter:
                 "native_primitives_used": ["Graph", "Runtime", "Event", "Behavior"],
             }
             self.activegraph_native_features.extend(["activegraph.Graph", "activegraph.Runtime", "activegraph.Event", "activegraph.Behavior", "Graph.add_object", "Graph.add_relation", "Graph.emit", "Runtime.fork", "Runtime.diff"])
-            self.adapter_shim_features.extend(["behavior_dispatch_adapter", "dynamic_behavior_registration_adapter", "disable_metadata_adapter", "diff_normalization_adapter"])
+            self.adapter_shim_features.extend(["behavior_dispatch_adapter", "dynamic_behavior_registration_adapter", "disable_metadata_adapter", "diff_normalization_adapter", "snapshot_diff_adapter"])
         else:
             if not self.allow_local_shim:
                 self.backend_kind = "activegraph_import_probe_local_shim"
             self.backend_details = {"activegraph_available": False, "local_shim_required": True, "probe_message": probe.reason}
-            self.adapter_shim_features.extend(["local_shim_runtime", "behavior_dispatch_adapter", "dynamic_behavior_registration_adapter", "disable_metadata_adapter", "diff_normalization_adapter"])
+            self.adapter_shim_features.extend(["local_shim_runtime", "behavior_dispatch_adapter", "dynamic_behavior_registration_adapter", "disable_metadata_adapter", "diff_normalization_adapter", "snapshot_diff_adapter"])
 
         self.capabilities = {
             "create_runtime_graph": "native_activegraph" if self.activegraph_available else "local_shim_required",
@@ -124,41 +124,118 @@ class ActiveGraphAdapter:
         self._shim.apply_event(event)
 
     def all_objects(self):
+        if self._shim.graph.objects:
+            return list(self._shim.graph.objects.values())
         if self._ag_graph is not None:
-            return [self._to_dict(o) for o in self._ag_graph.all_objects()]
+            return [self.normalize_object(o) for o in self._ag_graph.all_objects()]
         return list(self._shim.graph.objects.values())
 
     def all_relations(self):
+        if self._shim.graph.relations:
+            return list(self._shim.graph.relations)
         if self._ag_graph is not None:
-            return [self._to_dict(r) for r in self._ag_graph.all_relations()]
+            return [self.normalize_relation(r) for r in self._ag_graph.all_relations()]
         return list(self._shim.graph.relations)
 
     def objects(self, type: Optional[str] = None):
+        if self._shim.graph.objects:
+            return [o for o in self._shim.graph.objects.values() if type is None or o.get("type") == type]
         if self._ag_graph is not None:
-            return [self._to_dict(o) for o in self._ag_graph.objects(type=type)]
+            return [self.normalize_object(o) for o in self._ag_graph.objects(type=type)]
         return [o for o in self._shim.graph.objects.values() if type is None or o.get("type") == type]
 
     def relations(self, type: Optional[str] = None, source: Optional[str] = None, target: Optional[str] = None):
+        if self._shim.graph.relations:
+            out = self._shim.graph.relations
+            return [r for r in out if (type is None or r.get("type") == type) and (source is None or r.get("from") == source) and (target is None or r.get("to") == target)]
         if self._ag_graph is not None:
-            return [self._to_dict(r) for r in self._ag_graph.relations(source=source, target=target, type=type)]
+            return [self.normalize_relation(r) for r in self._ag_graph.relations(source=source, target=target, type=type)]
         out = self._shim.graph.relations
         return [r for r in out if (type is None or r.get("type") == type) and (source is None or r.get("from") == source) and (target is None or r.get("to") == target)]
 
     def get_object(self, id_: str):
+        if id_ in self._shim.graph.objects:
+            return self._shim.graph.objects.get(id_)
         if self._ag_graph is not None:
-            return self._to_dict(self._ag_graph.get_object(id_))
+            return self.normalize_object(self._ag_graph.get_object(id_))
         return self._shim.graph.objects.get(id_)
 
     def get_relation(self, id_: str):
+        for rel in self._shim.graph.relations:
+            if rel.get("id") == id_:
+                return rel
         if self._ag_graph is not None:
-            return self._to_dict(self._ag_graph.get_relation(id_))
+            return self.normalize_relation(self._ag_graph.get_relation(id_))
         for rel in self._shim.graph.relations:
             if rel.get("id") == id_:
                 return rel
         return None
 
     def read_state(self) -> Dict[str, Any]:
-        return {"objects": self._shim.graph.objects, "relations": self._shim.graph.relations}
+        return {"objects": self.all_objects(), "relations": self.all_relations()}
+
+    def normalize_object(self, obj: Any) -> Dict[str, Any]:
+        raw = self._to_dict(obj)
+        data = raw.get("data")
+        if isinstance(data, dict):
+            return {"id": raw.get("id"), "type": raw.get("type"), **data}
+        return raw
+
+    def normalize_relation(self, rel: Any) -> Dict[str, Any]:
+        raw = self._to_dict(rel)
+        data = raw.get("data")
+        base = {
+            "id": raw.get("id"),
+            "type": raw.get("type"),
+            "from": raw.get("source", raw.get("from")),
+            "to": raw.get("target", raw.get("to")),
+        }
+        if isinstance(data, dict):
+            return {**base, **data}
+        return {**base, **{k: v for k, v in raw.items() if k not in {"source", "target", "data"}}}
+
+    def object_count(self) -> int:
+        return len(self.all_objects())
+
+    def relation_count(self) -> int:
+        return len(self.all_relations())
+
+    def snapshot_graph(self) -> Dict[str, Any]:
+        return {
+            "objects": self.all_objects(),
+            "relations": self.all_relations(),
+            "event_count": len(self.events),
+        }
+
+    def diff_snapshots(self, before: Dict[str, Any], after: Dict[str, Any]) -> Dict[str, Any]:
+        before_objects = {o.get("id"): o for o in before.get("objects", []) if o.get("id") is not None}
+        after_objects = {o.get("id"): o for o in after.get("objects", []) if o.get("id") is not None}
+        created_object_ids = [oid for oid in after_objects if oid not in before_objects]
+
+        before_relation_ids = {r.get("id") for r in before.get("relations", []) if r.get("id") is not None}
+        created_relations = []
+        for rel in after.get("relations", []):
+            rid = rel.get("id")
+            if rid is not None:
+                if rid not in before_relation_ids:
+                    created_relations.append(rel)
+            elif rel not in before.get("relations", []):
+                created_relations.append(rel)
+
+        return {
+            "objects_created": len(created_object_ids),
+            "relations_created": len(created_relations),
+            "events_created": max(0, int(after.get("event_count", 0)) - int(before.get("event_count", 0))),
+            "created_object_ids": created_object_ids,
+            "created_objects": [after_objects[oid] for oid in created_object_ids],
+            "created_relations": created_relations,
+        }
+
+    def structural_diff(self, before: Dict[str, Any], after: Dict[str, Any]) -> Dict[str, Any]:
+        return self.diff_snapshots(before, after)
+
+    def fork_for_sandbox(self) -> "ActiveGraphAdapter":
+        return self.fork()
 
     def fork(self) -> "ActiveGraphAdapter":
         child = ActiveGraphAdapter(allow_local_shim=True)

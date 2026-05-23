@@ -80,22 +80,31 @@ class EmitOnlyBehaviorContext:
 
 
 class ReadOnlyGraphView:
-    def __init__(self, graph):
-        self._graph = graph
+    def __init__(self, runtime_or_graph):
+        self._runtime = runtime_or_graph
+        self._graph = runtime_or_graph
 
     def get_object(self, object_id: str) -> Optional[Dict[str, Any]]:
-        obj = self._graph.objects.get(object_id)
+        if hasattr(self._runtime, "get_object"):
+            obj = self._runtime.get_object(object_id)
+        else:
+            obj = self._graph.objects.get(object_id)
         return dict(obj) if obj else None
 
     def objects_by_type(self, object_type: str) -> List[Dict[str, Any]]:
+        if hasattr(self._runtime, "objects"):
+            return [dict(obj) for obj in self._runtime.objects(type=object_type)]
         return [dict(obj) for obj in self._graph.objects.values() if obj.get("type") == object_type]
 
     def relations_by_type(self, relation_type: str) -> List[Dict[str, Any]]:
+        if hasattr(self._runtime, "relations"):
+            return [dict(rel) for rel in self._runtime.relations(type=relation_type)]
         return [dict(rel) for rel in self._graph.relations if rel.get("type") == relation_type]
 
     def find_relations(self, from_id: Optional[str] = None, to_id: Optional[str] = None, type: Optional[str] = None) -> List[Dict[str, Any]]:
         out = []
-        for rel in self._graph.relations:
+        rels = self._runtime.relations(type=type, source=from_id, target=to_id) if hasattr(self._runtime, "relations") else self._graph.relations
+        for rel in rels:
             if from_id is not None and rel.get("from") != from_id:
                 continue
             if to_id is not None and rel.get("to") != to_id:
@@ -106,18 +115,25 @@ class ReadOnlyGraphView:
         return out
 
     def object_count(self) -> int:
+        if hasattr(self._runtime, "object_count"):
+            return self._runtime.object_count()
         return len(self._graph.objects)
 
     def relation_count(self) -> int:
+        if hasattr(self._runtime, "relation_count"):
+            return self._runtime.relation_count()
         return len(self._graph.relations)
 
     @property
     def objects(self):
-        return MappingProxyType({k: MappingProxyType(dict(v)) for k, v in self._graph.objects.items()})
+        all_objects = self._runtime.all_objects() if hasattr(self._runtime, "all_objects") else self._graph.objects.values()
+        rows = {obj["id"]: MappingProxyType(dict(obj)) for obj in all_objects if "id" in obj}
+        return MappingProxyType(rows)
 
     @property
     def relations(self):
-        return tuple(MappingProxyType(dict(r)) for r in self._graph.relations)
+        rels = self._runtime.all_relations() if hasattr(self._runtime, "all_relations") else self._graph.relations
+        return tuple(MappingProxyType(dict(r)) for r in rels)
 
 
 def _compile_behavior_source(source_code: str):
@@ -144,8 +160,9 @@ def compile_runtime_behavior(source_code: str):
 
 def run_behavior_sandbox(runtime: EventSourcedRuntime, draft, behavior_fn, trigger_event, tests, budgets, analysis_passed: bool = True):
     start = time.time()
-    fork = runtime.fork()
-    before = fork.graph.clone()
+    fork = runtime.fork_for_sandbox() if hasattr(runtime, "fork_for_sandbox") else runtime.fork()
+    use_adapter_snapshot = hasattr(fork, "snapshot_graph") and hasattr(fork, "structural_diff")
+    before = fork.snapshot_graph() if use_adapter_snapshot else fork.graph.clone()
     exceptions = []
     source_compiled = False
     source_error = None
@@ -163,7 +180,7 @@ def run_behavior_sandbox(runtime: EventSourcedRuntime, draft, behavior_fn, trigg
             allowed_object_types=set(tests[0].expected_objects) if tests else set(),
             allowed_relation_types=set(tests[0].expected_relations) if tests else set(),
         )
-        selected_behavior(trigger_event.payload, ReadOnlyGraphView(fork.graph), ctx)
+        selected_behavior(trigger_event.payload, ReadOnlyGraphView(fork), ctx)
         out_events = ctx.events()
         for ev in out_events:
             fork.apply_event(ev)
@@ -171,7 +188,11 @@ def run_behavior_sandbox(runtime: EventSourcedRuntime, draft, behavior_fn, trigg
         out_events = []
         source_error = str(e)
         exceptions.append(str(e))
-    diff = fork.graph.structural_diff(before)
+    if use_adapter_snapshot:
+        after = fork.snapshot_graph()
+        diff = fork.structural_diff(before, after)
+    else:
+        diff = fork.graph.structural_diff(before)
     events_emitted = len(out_events)
     budget_ok = (
         events_emitted <= budgets.get("max_emitted_events", 10)

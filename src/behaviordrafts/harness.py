@@ -235,7 +235,7 @@ def run_experiments(use_llm: bool = False):
                         "actual_diff": sandbox.structural_diff,
                         "diff_match": _diff_matches(expected_diff, sandbox.structural_diff)
                         and _semantic_diff_matches(goal["goal_name"], goal["trigger_object"], sandbox.structural_diff),
-                        "live_graph_unchanged_before_promotion": len(runtime.shim_runtime.graph.objects) == 0 and len(runtime.shim_runtime.graph.relations) == 0,
+                        "live_graph_unchanged_before_promotion": runtime.object_count() == 0 and runtime.relation_count() == 0,
                         "llm_static_analysis_passed": analysis.analysis_passed if use_llm else None,
                         "llm_sandbox_passed": sandbox.sandbox_passed if use_llm else None,
                         "llm_diff_match": (_diff_matches(expected_diff, sandbox.structural_diff) and _semantic_diff_matches(goal["goal_name"], goal["trigger_object"], sandbox.structural_diff)) if use_llm else None,
@@ -262,9 +262,7 @@ def run_experiments(use_llm: bool = False):
                 if decision and decision.decision == "approved":
                     binding_id = next(iter(runtime.behaviors))
                     runtime.emit(trigger)
-                    result["promoted_behavior_fired_on_matching_event"] = any(
-                        o.get("type") in ["Summary", "Evaluation"] for o in runtime.shim_runtime.graph.objects.values()
-                    )
+                    result["promoted_behavior_fired_on_matching_event"] = any(o.get("type") in ["Summary", "Evaluation"] for o in runtime.all_objects())
 
                     nonmatching_before = len(runtime.events)
                     runtime.emit(Event("object.created", {"object": {"id": "unrelated-1", "type": "Unrelated"}}))
@@ -283,8 +281,8 @@ def run_experiments(use_llm: bool = False):
                 sandboxes.append(asdict(sandbox))
 
             result["events_created"] = len(runtime.events)
-            result["objects_created"] = len(runtime.graph.objects)
-            result["relations_created"] = len(runtime.graph.relations)
+            result["objects_created"] = runtime.object_count()
+            result["relations_created"] = runtime.relation_count()
             events_log.extend([e.__dict__ for e in runtime.events])
 
             all_results.append(result)
