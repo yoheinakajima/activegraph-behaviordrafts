@@ -69,5 +69,7 @@ def test_matrix_prompt_includes_heading_validator_schema_requirements():
 
 def test_matrix_prompt_includes_fstring_quote_guidance():
     prompt = _build_prompt(_goal(), {"condition": "C", "goal": "file_summary_1"})
-    assert "Use double-quoted outer f-strings" in prompt
-    assert "f\"summary-{obj['id']}\"" in prompt
+    assert "Avoid nested quotes inside f-strings" in prompt
+    assert 'obj_id = obj["id"]' in prompt
+    assert 'summary_id = f"summary-{obj_id}"' in prompt
+    assert "Do not write: f'summary-{obj['id']}'" in prompt
