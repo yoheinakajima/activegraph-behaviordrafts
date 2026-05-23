@@ -100,3 +100,6 @@ Earlier smoke/smaller snapshots (for historical context only) are prior runs and
 
 - 23-goal / 1-trial run (superseded)
 - 2-goal smoke-style runs (superseded)
+
+
+> 2026-05-23 update: post-integration framing updated: ActiveGraph-backed adapter with documented local shims. Claims of pure ActiveGraph runtime execution remain softened until native runtime APIs are importable in this environment.

@@ -212,3 +212,6 @@ We include a bounded local live authorship matrix using **`gpt-4o-mini`** over *
 **Recommended immediate next step: A. Expanded goal corpus.**
 
 Rationale: the strongest near-term paper improvement is increased external validity of the core lifecycle claim without changing architecture or introducing new safety claims. Expanding deterministic goals with predeclared semantic expectations will stress the same gating pipeline, produce stronger tables, and keep the paper’s central argument focused on bounded, auditable authority transfer.
+
+
+> 2026-05-23 update: post-integration ActiveGraph-backed adapter with documented local shims. Claims of pure ActiveGraph runtime execution remain softened until native runtime APIs are importable in this environment.

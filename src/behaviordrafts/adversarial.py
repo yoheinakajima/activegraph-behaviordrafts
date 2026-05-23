@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,7 +12,7 @@ from .events import Event
 from .harness import _semantic_diff_matches
 from .promotion import promote_behavior
 from .reporting import write_json, write_jsonl
-from .runtime import EventSourcedRuntime
+from .activegraph_adapter import ActiveGraphAdapter
 from .sandbox import compile_runtime_behavior, run_behavior_sandbox
 from .static_analysis import run_static_analysis
 
@@ -74,10 +75,11 @@ def adversarial_cases() -> List[AdversarialCase]:
 def run_adversarial_experiments() -> Dict[str, Any]:
     goals = _goal_map()
     rows: List[Dict[str, Any]] = []
+    allow_local_shim = os.getenv("BEHAVIORDRAFTS_ALLOW_LOCAL_SHIM", "1") == "1"
     for case in adversarial_cases():
         goal = dict(goals[case.goal_id])
         goal["source_code"] = case.source_code
-        runtime = EventSourcedRuntime()
+        runtime = ActiveGraphAdapter(allow_local_shim=allow_local_shim)
         draft = author_behavior_draft_fixture(case.case_id, goal)
         tests = author_behavior_tests(draft, goal)
         analysis = run_static_analysis(draft)
@@ -104,7 +106,11 @@ def run_adversarial_experiments() -> Dict[str, Any]:
             "diff_match": diff_match,
             "promotion_attempted": promotion_attempted,
             "promotion_succeeded": promotion_succeeded,
-            "live_graph_unchanged": len(runtime.graph.objects) == 0 and len(runtime.graph.relations) == 0,
+            "live_graph_unchanged": len(runtime.runtime.graph.objects) == 0 and len(runtime.runtime.graph.relations) == 0,
+            "backend_kind": runtime.backend_kind,
+            "activegraph_available": runtime.activegraph_available,
+            "activegraph_native_features": runtime.activegraph_native_features,
+            "adapter_shim_features": runtime.adapter_shim_features,
             "expected_static_pass": case.expected_static_pass,
             "expected_sandbox_pass": case.expected_sandbox_pass,
             "expected_diff_match": case.expected_diff_match,
@@ -122,6 +128,7 @@ def run_adversarial_experiments() -> Dict[str, Any]:
         rows.append(row)
 
     summary = {
+        "backend_kind": rows[0]["backend_kind"] if rows else None,
         "total_cases": len(rows),
         "static_reject_cases": sum(1 for r in rows if r["category"] == "static_reject"),
         "sandbox_reject_cases": sum(1 for r in rows if r["category"] == "sandbox_reject"),
