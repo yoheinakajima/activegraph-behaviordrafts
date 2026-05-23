@@ -75,7 +75,8 @@ def adversarial_cases() -> List[AdversarialCase]:
 def run_adversarial_experiments() -> Dict[str, Any]:
     goals = _goal_map()
     rows: List[Dict[str, Any]] = []
-    allow_local_shim = os.getenv("BEHAVIORDRAFTS_ALLOW_LOCAL_SHIM", "1") == "1"
+    backend = os.getenv("BEHAVIORDRAFTS_BACKEND", "activegraph_adapter")
+    allow_local_shim = backend == "local_shim"
     for case in adversarial_cases():
         goal = dict(goals[case.goal_id])
         goal["source_code"] = case.source_code
@@ -106,11 +107,12 @@ def run_adversarial_experiments() -> Dict[str, Any]:
             "diff_match": diff_match,
             "promotion_attempted": promotion_attempted,
             "promotion_succeeded": promotion_succeeded,
-            "live_graph_unchanged": len(runtime.runtime.graph.objects) == 0 and len(runtime.runtime.graph.relations) == 0,
+            "live_graph_unchanged": len(runtime.shim_runtime.graph.objects) == 0 and len(runtime.shim_runtime.graph.relations) == 0,
             "backend_kind": runtime.backend_kind,
             "activegraph_available": runtime.activegraph_available,
             "activegraph_native_features": runtime.activegraph_native_features,
             "adapter_shim_features": runtime.adapter_shim_features,
+            "backend_details": runtime.backend_details,
             "expected_static_pass": case.expected_static_pass,
             "expected_sandbox_pass": case.expected_sandbox_pass,
             "expected_diff_match": case.expected_diff_match,
@@ -129,6 +131,10 @@ def run_adversarial_experiments() -> Dict[str, Any]:
 
     summary = {
         "backend_kind": rows[0]["backend_kind"] if rows else None,
+        "activegraph_available": rows[0]["activegraph_available"] if rows else None,
+        "activegraph_native_features": rows[0]["activegraph_native_features"] if rows else None,
+        "adapter_shim_features": rows[0]["adapter_shim_features"] if rows else None,
+        "backend_details": rows[0].get("backend_details") if rows else None,
         "total_cases": len(rows),
         "static_reject_cases": sum(1 for r in rows if r["category"] == "static_reject"),
         "sandbox_reject_cases": sum(1 for r in rows if r["category"] == "sandbox_reject"),

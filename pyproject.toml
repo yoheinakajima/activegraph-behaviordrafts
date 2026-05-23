@@ -7,7 +7,7 @@ name = "activegraph-behaviordrafts"
 version = "0.1.0"
 description = "Event-sourced behavior drafts for LLM self-modification"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = ["activegraph==1.0.5.post2"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

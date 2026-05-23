@@ -153,7 +153,8 @@ def run_experiments(use_llm: bool = False):
     drafts_log: List[Dict[str, Any]] = []
     sandboxes: List[Dict[str, Any]] = []
 
-    allow_local_shim = os.getenv("BEHAVIORDRAFTS_ALLOW_LOCAL_SHIM", "1") == "1"
+    backend = os.getenv("BEHAVIORDRAFTS_BACKEND", "activegraph_adapter")
+    allow_local_shim = backend == "local_shim"
     for condition in ["A", "B", "C"]:
         for goal in goals:
             runtime = ActiveGraphAdapter(allow_local_shim=allow_local_shim)
@@ -234,7 +235,7 @@ def run_experiments(use_llm: bool = False):
                         "actual_diff": sandbox.structural_diff,
                         "diff_match": _diff_matches(expected_diff, sandbox.structural_diff)
                         and _semantic_diff_matches(goal["goal_name"], goal["trigger_object"], sandbox.structural_diff),
-                        "live_graph_unchanged_before_promotion": len(runtime.runtime.graph.objects) == 0 and len(runtime.runtime.graph.relations) == 0,
+                        "live_graph_unchanged_before_promotion": len(runtime.shim_runtime.graph.objects) == 0 and len(runtime.shim_runtime.graph.relations) == 0,
                         "llm_static_analysis_passed": analysis.analysis_passed if use_llm else None,
                         "llm_sandbox_passed": sandbox.sandbox_passed if use_llm else None,
                         "llm_diff_match": (_diff_matches(expected_diff, sandbox.structural_diff) and _semantic_diff_matches(goal["goal_name"], goal["trigger_object"], sandbox.structural_diff)) if use_llm else None,
@@ -262,7 +263,7 @@ def run_experiments(use_llm: bool = False):
                     binding_id = next(iter(runtime.behaviors))
                     runtime.emit(trigger)
                     result["promoted_behavior_fired_on_matching_event"] = any(
-                        o.get("type") in ["Summary", "Evaluation"] for o in runtime.runtime.graph.objects.values()
+                        o.get("type") in ["Summary", "Evaluation"] for o in runtime.shim_runtime.graph.objects.values()
                     )
 
                     nonmatching_before = len(runtime.events)
