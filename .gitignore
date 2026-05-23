@@ -7,3 +7,5 @@ results/*.json
 results/*.jsonl
 results/*.md
 !results/.gitkeep
+
+.venv/
