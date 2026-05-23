@@ -23,7 +23,7 @@ def test_semantic_validators_accept_and_reject():
 
 
 def test_matrix_summary_and_failure_stage():
-    c1 = {"goal_id": "g1", "parsed_ok": True, "static_analysis_passed": True, "sandbox_passed": True, "diff_match": True, "promotion_attempted": True, "promotion_succeeded": True, "matching_event_fired": True, "nonmatching_event_silent": True, "disable_succeeded": True}
+    c1 = {"goal_id": "g1", "parsed_ok": True, "draft_created": True, "static_analysis_passed": True, "sandbox_passed": True, "diff_match": True, "promotion_attempted": True, "promotion_succeeded": True, "matching_event_fired": True, "nonmatching_event_silent": True, "disable_succeeded": True}
     c1["failure_stage"] = assign_failure_stage(c1)
     c2 = dict(c1)
     c2.update({"goal_id": "g2", "parsed_ok": False})
@@ -32,3 +32,20 @@ def test_matrix_summary_and_failure_stage():
     assert summary["full_successes"] == 1
     assert summary["parse_failures"] == 1
     assert c2["failure_stage"] == "parse"
+
+
+def test_failure_stage_draft_construction_after_successful_parse():
+    case = {
+        "goal_id": "g3",
+        "parsed_ok": True,
+        "draft_created": False,
+        "static_analysis_passed": False,
+        "sandbox_passed": False,
+        "diff_match": False,
+        "promotion_attempted": False,
+        "promotion_succeeded": False,
+        "matching_event_fired": False,
+        "nonmatching_event_silent": False,
+        "disable_succeeded": False,
+    }
+    assert assign_failure_stage(case) == "draft_construction"
