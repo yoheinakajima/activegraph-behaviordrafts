@@ -2,24 +2,49 @@
 
 ## Status
 
-BehaviorDrafts now uses an **ActiveGraph-backed adapter** (`ActiveGraphAdapter`) as the default backend selection (`BEHAVIORDRAFTS_BACKEND=activegraph_adapter`).
+BehaviorDrafts now runs on an **ActiveGraph-backed adapter** (`ActiveGraphAdapter`) as the default backend path (`BEHAVIORDRAFTS_BACKEND=activegraph_adapter`).
 
-## Native ActiveGraph primitives now instantiated
+ActiveGraph imports locally (`import activegraph` succeeds in this environment), and both deterministic/adversarial checks and the live LLM matrix have now been rerun on the `activegraph_adapter` path.
+
+## Native ActiveGraph primitives in use
 
 - `activegraph.Graph`
 - `activegraph.Runtime`
 - `activegraph.Event`
-- `activegraph.Behavior` (registration path via adapter runtime rebuild)
+- `activegraph.Behavior`
+- `Graph.add_object`
+- `Graph.add_relation`
+- `Graph.emit`
+- `Runtime.fork`
+- `Runtime.diff`
 
-## Adapter glue still present
+## ActiveGraphAdapter-backed results framing
 
-- Dynamic behavior registration is implemented via adapter-managed registry + runtime rebuild (`adapter_glue`).
-- Disable/unbind remains adapter metadata driven (`adapter_glue`).
-- Diff normalization to repository semantic-diff shape remains adapter normalization (`adapter_glue`).
-- Sandbox pre-parent-event fork fallback is documented as `local_shim_required:fork_without_parent_event`.
+Results should be framed as:
 
-## Claim framing (post-integration)
+- **ActiveGraphAdapter-backed** (real ActiveGraph primitives where available)
+- **Not pure/native ActiveGraph end-to-end** (adapter glue remains in lifecycle wiring)
 
-Use: **"BehaviorDrafts on an ActiveGraph-backed adapter with documented shims."**
+Recommended wording:
 
-Do not claim fully pure/native ActiveGraph behavior lifecycle until dynamic bind/unbind and all sandbox fork points are native without adapter-managed fallback.
+> BehaviorDrafts on an ActiveGraph-backed adapter with documented shims.
+
+## Remaining adapter shims (explicit)
+
+- `behavior_dispatch_adapter`
+- `dynamic_behavior_registration_adapter`
+- `disable_metadata_adapter`
+- `diff_normalization_adapter`
+- `snapshot_diff_adapter`
+
+## Post-ActiveGraphAdapter rerun context
+
+- Deterministic lifecycle runs: 6
+- Adversarial cases: 29
+- Cases matching expectation: 29
+- Unexpected passes: 0
+- Unexpected failures: 0
+- Promotions succeeded: 2
+- Live graph violations: 0
+- Tests: 76 passed
+- Live matrix (`gpt-4o-mini`): 23 goals × 3 trials = 69 total, 60 full lifecycle successes
