@@ -45,6 +45,8 @@ def main():
             case["prompt_hash"] = meta.get("prompt_hash")
             case["parsed_ok"] = bool(meta.get("parsed_ok"))
             case["parse_error"] = meta.get("parse_error")
+            if meta.get("draft_error"):
+                case["errors"].append(meta.get("draft_error"))
             prompts.append({"goal_id": goal["goal_id"], "trial_index": trial_idx, "model": args.model, "prompt_hash": meta.get("prompt_hash"), "prompt": meta.get("prompt", "")})
             raws.append({"goal_id": goal["goal_id"], "trial_index": trial_idx, "model": args.model, "prompt_hash": meta.get("prompt_hash"), "raw_response": meta.get("raw_response", ""), "parse_error": meta.get("parse_error")})
             if draft is not None:

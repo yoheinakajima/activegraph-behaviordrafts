@@ -107,6 +107,8 @@ def semantic_diff_matches(goal: Dict[str, Any], diff: Dict[str, Any]) -> bool:
 def assign_failure_stage(case: Dict[str, Any]) -> FailureStage:
     if not case.get("parsed_ok"):
         return "parse"
+    if not case.get("draft_created"):
+        return "draft_construction"
     if not case.get("static_analysis_passed"):
         return "static_analysis"
     if not case.get("sandbox_passed"):
@@ -135,6 +137,7 @@ def aggregate_summary(cases: List[Dict[str, Any]], model: str, goals: int, trial
     out["full_successes"] = sum(1 for c in cases if assign_failure_stage(c) == "none")
     out["parse_failures"] = sum(1 for c in cases if c["failure_stage"] == "parse")
     out["static_failures"] = sum(1 for c in cases if c["failure_stage"] == "static_analysis")
+    out["draft_construction_failures"] = sum(1 for c in cases if c["failure_stage"] == "draft_construction")
     out["sandbox_failures"] = sum(1 for c in cases if c["failure_stage"] == "sandbox")
     out["semantic_failures"] = sum(1 for c in cases if c["failure_stage"] == "semantic_diff")
     out["promotion_failures"] = sum(1 for c in cases if c["failure_stage"] == "promotion")

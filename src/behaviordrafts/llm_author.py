@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple
 from urllib import request
 
-from .drafts import BehaviorDraft
+from .drafts import BehaviorDraft, get_goal_name
 
 DEFAULT_MODEL = os.getenv("BEHAVIORDRAFTS_MODEL", "gpt-4o-mini")
 
@@ -81,8 +81,9 @@ def author_behavior_draft_with_llm(goal: Dict[str, Any], fixture: Dict[str, Any]
         "parsed_ok": False,
         "parse_error": None,
         "created_at": now,
-        "goal_id": goal.get("goal_name"),
+        "goal_id": goal.get("goal_name") or goal.get("goal_id"),
         "condition": fixture.get("condition", "unknown"),
+        "draft_error": None,
     }
 
     if not llm_available():
@@ -93,6 +94,8 @@ def author_behavior_draft_with_llm(goal: Dict[str, Any], fixture: Dict[str, Any]
         raw = _call_openai(prompt, chosen_model, os.getenv("OPENAI_API_KEY", ""))
         meta["raw_response"] = raw
         payload = json.loads(raw)
+        meta["parsed_ok"] = True
+        goal_name = get_goal_name(goal)
         draft = BehaviorDraft(
             id=str(uuid.uuid4()),
             name=payload["name"],
@@ -107,15 +110,17 @@ def author_behavior_draft_with_llm(goal: Dict[str, Any], fixture: Dict[str, Any]
             expected_emitted_events=payload.get("expected_emitted_events", []),
             expected_graph_mutations=payload.get("expected_graph_mutations", {}),
             created_by="llm",
-            created_from_goal=goal["goal_name"],
+            created_from_goal=goal_name,
             model_used=chosen_model,
             prompt_hash=prompt_hash,
             authoring_mode="llm",
             provenance=meta,
             status="drafted",
         )
-        meta["parsed_ok"] = True
         return draft, meta
-    except Exception as exc:
+    except json.JSONDecodeError as exc:
         meta["parse_error"] = str(exc)
+        return None, meta
+    except Exception as exc:
+        meta["draft_error"] = str(exc)
         return None, meta

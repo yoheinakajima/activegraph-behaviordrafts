@@ -41,6 +41,36 @@ def test_valid_llm_json_becomes_draft(monkeypatch):
     assert meta["parsed_ok"]
 
 
+def test_valid_llm_json_goal_id_without_goal_name_becomes_draft(monkeypatch):
+    payload = {
+        "name": "x",
+        "description": "d",
+        "source_code": "def behavior(event, graph, ctx):\n pass",
+    }
+    monkeypatch.setenv("OPENAI_API_KEY", "x")
+    monkeypatch.setattr("behaviordrafts.llm_author._call_openai", lambda *args, **kwargs: json.dumps(payload))
+    draft, meta = author_behavior_draft_with_llm({"goal_id": "g-matrix"}, {"condition": "C"})
+    assert draft is not None
+    assert draft.created_from_goal == "g-matrix"
+    assert meta["parsed_ok"]
+    assert meta["parse_error"] is None
+
+
+def test_valid_json_missing_goal_metadata_is_draft_error_not_parse_error(monkeypatch):
+    payload = {
+        "name": "x",
+        "description": "d",
+        "source_code": "def behavior(event, graph, ctx):\n pass",
+    }
+    monkeypatch.setenv("OPENAI_API_KEY", "x")
+    monkeypatch.setattr("behaviordrafts.llm_author._call_openai", lambda *args, **kwargs: json.dumps(payload))
+    draft, meta = author_behavior_draft_with_llm({}, {"condition": "C"})
+    assert draft is None
+    assert meta["parsed_ok"]
+    assert meta["parse_error"] is None
+    assert meta["draft_error"]
+
+
 def test_malformed_llm_json_records_parse_failure(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "x")
     monkeypatch.setattr("behaviordrafts.llm_author._call_openai", lambda *args, **kwargs: "{not-json")

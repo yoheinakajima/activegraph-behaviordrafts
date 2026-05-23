@@ -54,6 +54,13 @@ def author_behavior_draft_fixture(name: str, goal: Dict[str, Any]) -> BehaviorDr
     )
 
 
+def get_goal_name(goal: Dict[str, Any]) -> str:
+    goal_name = goal.get("goal_name") or goal.get("goal_id")
+    if not goal_name:
+        raise KeyError("goal_name/goal_id")
+    return goal_name
+
+
 def author_behavior_tests(draft: BehaviorDraft, goal: Dict[str, Any]) -> List[BehaviorTest]:
     t = BehaviorTest(
         id=str(uuid.uuid4()), draft_id=draft.id, test_name=f"{draft.name}_basic", fixture_events=goal["fixture_events"],
