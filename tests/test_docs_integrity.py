@@ -12,5 +12,5 @@ def test_live_matrix_results_restored_and_contains_snapshot_metrics():
     text = Path("docs/live_llm_matrix_results.md").read_text(encoding="utf-8")
     assert len(text.splitlines()) > 60
     assert "Total trials: 69" in text
-    assert "full_successes | 59" in text
-    assert "semantic_failures | 5" in text
+    assert "full_successes | 60" in text
+    assert "semantic_failures | 3" in text

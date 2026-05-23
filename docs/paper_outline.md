@@ -1,6 +1,6 @@
 # Paper Outline
 
-**Substrate-status note (2026-05-23):** The detailed outline below is preserved from the pre-native-adapter writeup. Treat 23-goal/69-trial live matrix metrics as a local-shim-era snapshot until rerun end-to-end with real ActiveGraph imports on the default ActiveGraphAdapter path. Deterministic/adversarial adapter-backed checks should be reported separately with explicit backend metadata.
+**Substrate-status note (2026-05-23):** The primary live result is now the post-ActiveGraphAdapter rerun: 23 goals, 3 trials/goal (69 total), 60 full lifecycle successes on `gpt-4o-mini`. Historical pre-integration/local-shim numbers are retained only as earlier snapshots.
 
 ## 1. Proposed title
 
@@ -20,7 +20,7 @@ This paper argues that in an event-sourced agent runtime, generated behavior cod
 
 Event-sourced agent systems provide strong auditability for state transitions, but typical “self-modification” mechanisms in these systems are graph-native and bounded: they can rebind behavior and mutate graph state, yet do not safely authorize new code. We present a BehaviorDraft lifecycle for ActiveGraph that separates code authorship from runtime authority. Candidate behavior is first captured as inert draft data, then passed through static analysis, executed in a forked sandbox, and validated by semantic diff checks against goal-level expectations. Only then can it be promoted to live scoped behavior. Crucially, promoted execution preserves interface parity with sandbox validation: both use `behavior(event, graph, ctx)` with read-only graph access and emit-only context capabilities.
 
-In deterministic lifecycle evaluation (6 runs across conditions A/B/C), we observe the expected progression: no behavior addition in graph-only baseline (A), inert draft validation without live authority (B), and successful gated promotion with matching-event firing, nonmatching silence, and disable semantics (C). In adversarial containment evaluation (29 hand-authored cases), all cases match expected outcomes with 0 unexpected passes, 0 unexpected failures, and 0 live graph violations. In a bounded local live LLM matrix run (model: `gpt-4o-mini`, 23 goals × 3 trials = 69 attempts), 69/69 attempts parse with no parse failures, and 59/69 complete full lifecycle success; failures are concentrated in semantic diff (5), sandbox (3), and static analysis (2), with no promotion/matching/nonmatching/disable failures. We frame these results as evidence for lifecycle containment and auditable authority transfer, not as evidence of broad model reliability, secure arbitrary code execution, or open-ended recursive self-improvement.
+In deterministic lifecycle evaluation (6 runs across conditions A/B/C), we observe the expected progression: no behavior addition in graph-only baseline (A), inert draft validation without live authority (B), and successful gated promotion with matching-event firing, nonmatching silence, and disable semantics (C). In adversarial containment evaluation (29 hand-authored cases), all cases match expected outcomes with 0 unexpected passes, 0 unexpected failures, and 0 live graph violations. In a bounded local live LLM matrix run on an ActiveGraphAdapter-backed path (model: `gpt-4o-mini`, 23 goals × 3 trials = 69 attempts), 69/69 attempts parse with no parse failures, and 60/69 complete full lifecycle success; failures are concentrated in semantic diff (3), sandbox (2), and static analysis (4), with no promotion/matching/nonmatching/disable failures. We frame these results as evidence for lifecycle containment and auditable authority transfer, not as evidence of broad model reliability, secure arbitrary code execution, or open-ended recursive self-improvement.
 
 ## 4. Contributions
 
@@ -117,9 +117,9 @@ Adversarial evaluation includes **29 cases**, with **29/29 matching expectation*
 
 A key design requirement is parity between sandbox validation and promoted execution. In this system, both paths use the same callable form `behavior(event, graph, ctx)`, the same `ReadOnlyGraphView` abstraction for graph access, and the same `EmitOnlyBehaviorContext` for action emission. Promoted execution additionally preserves provenance metadata injection and supports explicit disable behavior, preserving audit continuity across lifecycle stages. This parity strengthens the interpretation of sandbox results: promotion does not switch to a broader authority surface than the one validated pre-promotion.
 
-### 6.5 Live LLM authorship matrix (bounded corpus)
+### 6.5 Live LLM authorship matrix (ActiveGraphAdapter-backed, bounded corpus)
 
-We include a bounded local live authorship matrix using **`gpt-4o-mini`** over **23 goals** with **3 trials per goal** (**69 attempts**). Outcomes are: **69/69 parsed** (**0 parse failures**), **67/69 static-analysis passed**, **64/69 sandbox passed**, **59/69 semantic diff matched**, and **59/69 full lifecycle successes**. Promotion-linked outcomes are aligned at **59/69 promoted**, with **0 promotion failures**, **0 matching-event failures**, **0 nonmatching-event failures**, and **0 disable failures**. Failures are concentrated in **semantic diff (5)**, **sandbox (3)**, and **static analysis (2)**. We interpret this strictly as bounded-corpus lifecycle feasibility and observability, not evidence of broad live LLM reliability across tasks, prompts, models, or adversarial prompt conditions.
+We include a bounded local live authorship matrix using **`gpt-4o-mini`** over **23 goals** with **3 trials per goal** (**69 attempts**) on the **`activegraph_adapter`** backend path. Outcomes are: **69/69 parsed** (**0 parse failures**), **65/69 static-analysis passed**, **63/69 sandbox passed**, **60/69 semantic diff matched**, and **60/69 full lifecycle successes**. Promotion-linked outcomes are aligned at **60/69 promoted**, with **0 promotion failures**, **0 matching-event failures**, **0 nonmatching-event failures**, and **0 disable failures**. Failures are concentrated in **static analysis (4)**, **sandbox (2)**, and **semantic diff (3)**. We interpret this strictly as bounded-corpus lifecycle feasibility and observability, not evidence of broad live LLM reliability across tasks, prompts, models, or adversarial prompt conditions.
 
 ## 7. Tables to include
 
@@ -164,7 +164,7 @@ We include a bounded local live authorship matrix using **`gpt-4o-mini`** over *
 | Multi-gate lifecycle can block policy-violating or semantically invalid drafts before promotion. | 29-case adversarial containment with 29/29 expected outcomes. | Adversarial set is finite and hand-authored. |
 | Promoted behavior can run under the same constrained interface used in sandbox validation. | Runtime parity checks and promoted-run fields. | Not a proof of full sandbox/process security. |
 | Gated promotion can preserve matching-event fire, nonmatching silence, and disable semantics. | Condition C deterministic runs and benign controls. | Evaluated on limited behaviors/goals. |
-| Live model-authored drafts can pass the lifecycle in a bounded matrix run. | 23-goal / 69-trial local live `gpt-4o-mini` run with 59 full lifecycle successes and 69 parsed attempts. | Still a bounded corpus on one model; not broad reliability evidence. |
+| Live model-authored drafts can pass the lifecycle in a bounded matrix run. | ActiveGraphAdapter-backed 23-goal / 69-trial local live `gpt-4o-mini` run with 60 full lifecycle successes and 69 parsed attempts. | Still a bounded corpus on one model; not broad reliability evidence. |
 
 ### Non-claims
 - No claim of open-ended recursive self-improvement.
@@ -173,7 +173,11 @@ We include a bounded local live authorship matrix using **`gpt-4o-mini`** over *
 - No claim of broad task-performance improvements.
 - No claim of broad live LLM reliability across models/prompts/domains.
 
-## 10. Limitations
+## 10. Backend caveat
+
+The adapter uses real ActiveGraph `Graph`/`Runtime`/`Event`/`Behavior` primitives where available, while retaining documented adapter glue for behavior dispatch, dynamic behavior registration, disable metadata, diff normalization, and snapshot diffing.
+
+## 11. Limitations
 
 - Live LLM measurement remains bounded (23 goals, 69 trials) and single-model.
 - Deterministic goal corpus is small.
@@ -184,7 +188,7 @@ We include a bounded local live authorship matrix using **`gpt-4o-mini`** over *
 - No open-ended recursive self-improvement setting is evaluated.
 - Current evidence validates lifecycle correctness and containment, not usefulness at production scale.
 
-## 11. Next experiments needed
+## 12. Next experiments needed
 
 ### A. Expanded goal corpus
 - **Strengthens claim:** external validity of lifecycle correctness across more behavior classes.
@@ -206,7 +210,7 @@ We include a bounded local live authorship matrix using **`gpt-4o-mini`** over *
 - **Strengthens claim:** stability and variance characterization for end-to-end live authoring outcomes.
 - Track confidence intervals and failure mode taxonomy.
 
-## 12. Recommended next step
+## 13. Recommended next step
 
 **Recommended immediate next step: A. Expanded goal corpus.**
 
