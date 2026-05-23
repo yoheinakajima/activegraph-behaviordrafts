@@ -22,6 +22,7 @@ class BoundBehavior:
 
 @dataclass
 class EventSourcedRuntime:
+    backend_kind: str = "local_shim"
     events: List[Event] = field(default_factory=list)
     graph: GraphState = field(default_factory=GraphState)
     behaviors: Dict[str, BoundBehavior] = field(default_factory=dict)

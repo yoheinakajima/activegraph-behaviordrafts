@@ -1,5 +1,8 @@
 # Paper Outline
 
+> **Integration correction (2026-05-23):** Current repository execution is on a local runtime shim, not verified ActiveGraph runtime APIs. Until ActiveGraph-backed integration lands, treat all metrics in this outline as **pre-integration prototype results** and not evidence of “BehaviorDrafts on ActiveGraph.”
+
+
 ## 1. Proposed title
 
 1. **Code Without Authority: Event-Sourced Behavior Drafts for Auditable LLM Self-Modification**
