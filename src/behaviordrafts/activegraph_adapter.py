@@ -125,40 +125,66 @@ class ActiveGraphAdapter:
 
     def all_objects(self):
         if self._ag_graph is not None:
-            return [self._to_dict(o) for o in self._ag_graph.all_objects()]
+            return [self.normalize_object(o) for o in self._ag_graph.all_objects()]
         return list(self._shim.graph.objects.values())
 
     def all_relations(self):
         if self._ag_graph is not None:
-            return [self._to_dict(r) for r in self._ag_graph.all_relations()]
+            return [self.normalize_relation(r) for r in self._ag_graph.all_relations()]
         return list(self._shim.graph.relations)
 
     def objects(self, type: Optional[str] = None):
         if self._ag_graph is not None:
-            return [self._to_dict(o) for o in self._ag_graph.objects(type=type)]
+            return [self.normalize_object(o) for o in self._ag_graph.objects(type=type)]
         return [o for o in self._shim.graph.objects.values() if type is None or o.get("type") == type]
 
     def relations(self, type: Optional[str] = None, source: Optional[str] = None, target: Optional[str] = None):
         if self._ag_graph is not None:
-            return [self._to_dict(r) for r in self._ag_graph.relations(source=source, target=target, type=type)]
+            return [self.normalize_relation(r) for r in self._ag_graph.relations(source=source, target=target, type=type)]
         out = self._shim.graph.relations
         return [r for r in out if (type is None or r.get("type") == type) and (source is None or r.get("from") == source) and (target is None or r.get("to") == target)]
 
     def get_object(self, id_: str):
         if self._ag_graph is not None:
-            return self._to_dict(self._ag_graph.get_object(id_))
+            return self.normalize_object(self._ag_graph.get_object(id_))
         return self._shim.graph.objects.get(id_)
 
     def get_relation(self, id_: str):
         if self._ag_graph is not None:
-            return self._to_dict(self._ag_graph.get_relation(id_))
+            return self.normalize_relation(self._ag_graph.get_relation(id_))
         for rel in self._shim.graph.relations:
             if rel.get("id") == id_:
                 return rel
         return None
 
     def read_state(self) -> Dict[str, Any]:
-        return {"objects": self._shim.graph.objects, "relations": self._shim.graph.relations}
+        return {"objects": self.all_objects(), "relations": self.all_relations()}
+
+    def normalize_object(self, obj: Any) -> Dict[str, Any]:
+        raw = self._to_dict(obj)
+        data = raw.get("data")
+        if isinstance(data, dict):
+            return {"id": raw.get("id"), "type": raw.get("type"), **data}
+        return raw
+
+    def normalize_relation(self, rel: Any) -> Dict[str, Any]:
+        raw = self._to_dict(rel)
+        data = raw.get("data")
+        base = {
+            "id": raw.get("id"),
+            "type": raw.get("type"),
+            "from": raw.get("source", raw.get("from")),
+            "to": raw.get("target", raw.get("to")),
+        }
+        if isinstance(data, dict):
+            return {**base, **data}
+        return {**base, **{k: v for k, v in raw.items() if k not in {"source", "target", "data"}}}
+
+    def object_count(self) -> int:
+        return len(self.all_objects())
+
+    def relation_count(self) -> int:
+        return len(self.all_relations())
 
     def fork(self) -> "ActiveGraphAdapter":
         child = ActiveGraphAdapter(allow_local_shim=True)
