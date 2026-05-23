@@ -41,12 +41,12 @@ class ActiveGraphAdapter:
                 "native_primitives_used": ["Graph", "Runtime", "Event", "Behavior"],
             }
             self.activegraph_native_features.extend(["activegraph.Graph", "activegraph.Runtime", "activegraph.Event", "activegraph.Behavior", "Graph.add_object", "Graph.add_relation", "Graph.emit", "Runtime.fork", "Runtime.diff"])
-            self.adapter_shim_features.extend(["behavior_dispatch_adapter", "dynamic_behavior_registration_adapter", "disable_metadata_adapter", "diff_normalization_adapter"])
+            self.adapter_shim_features.extend(["behavior_dispatch_adapter", "dynamic_behavior_registration_adapter", "disable_metadata_adapter", "diff_normalization_adapter", "snapshot_diff_adapter"])
         else:
             if not self.allow_local_shim:
                 self.backend_kind = "activegraph_import_probe_local_shim"
             self.backend_details = {"activegraph_available": False, "local_shim_required": True, "probe_message": probe.reason}
-            self.adapter_shim_features.extend(["local_shim_runtime", "behavior_dispatch_adapter", "dynamic_behavior_registration_adapter", "disable_metadata_adapter", "diff_normalization_adapter"])
+            self.adapter_shim_features.extend(["local_shim_runtime", "behavior_dispatch_adapter", "dynamic_behavior_registration_adapter", "disable_metadata_adapter", "diff_normalization_adapter", "snapshot_diff_adapter"])
 
         self.capabilities = {
             "create_runtime_graph": "native_activegraph" if self.activegraph_available else "local_shim_required",
@@ -185,6 +185,43 @@ class ActiveGraphAdapter:
 
     def relation_count(self) -> int:
         return len(self.all_relations())
+
+    def snapshot_graph(self) -> Dict[str, Any]:
+        return {
+            "objects": self.all_objects(),
+            "relations": self.all_relations(),
+            "event_count": len(self.events),
+        }
+
+    def diff_snapshots(self, before: Dict[str, Any], after: Dict[str, Any]) -> Dict[str, Any]:
+        before_objects = {o.get("id"): o for o in before.get("objects", []) if o.get("id") is not None}
+        after_objects = {o.get("id"): o for o in after.get("objects", []) if o.get("id") is not None}
+        created_object_ids = [oid for oid in after_objects if oid not in before_objects]
+
+        before_relation_ids = {r.get("id") for r in before.get("relations", []) if r.get("id") is not None}
+        created_relations = []
+        for rel in after.get("relations", []):
+            rid = rel.get("id")
+            if rid is not None:
+                if rid not in before_relation_ids:
+                    created_relations.append(rel)
+            elif rel not in before.get("relations", []):
+                created_relations.append(rel)
+
+        return {
+            "objects_created": len(created_object_ids),
+            "relations_created": len(created_relations),
+            "events_created": max(0, int(after.get("event_count", 0)) - int(before.get("event_count", 0))),
+            "created_object_ids": created_object_ids,
+            "created_objects": [after_objects[oid] for oid in created_object_ids],
+            "created_relations": created_relations,
+        }
+
+    def structural_diff(self, before: Dict[str, Any], after: Dict[str, Any]) -> Dict[str, Any]:
+        return self.diff_snapshots(before, after)
+
+    def fork_for_sandbox(self) -> "ActiveGraphAdapter":
+        return self.fork()
 
     def fork(self) -> "ActiveGraphAdapter":
         child = ActiveGraphAdapter(allow_local_shim=True)
