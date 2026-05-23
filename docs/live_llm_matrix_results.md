@@ -2,19 +2,11 @@
 
 ## 1. Run context
 
-- This snapshot reflects a **local terminal run** (not a Codex execution).
+- Date: 2026-05-23 (timestamp shown in attached run output: `2026-05-23T02:31:05+00:00`).
+- Execution context: local run output captured outside Codex.
 - Model: `gpt-4o-mini`.
-- Corpus size: 23 goals.
-- Trials per goal: 3.
-- Generated `results/*` files are intentionally untracked artifacts in this repository.
-- This tracked documentation snapshot was created from attached terminal output.
-- Surrounding run context preserved from the source output:
-  - deterministic baseline still passes,
-  - adversarial corpus remains 29/29 expectation match,
-  - unexpected passes: 0,
-  - unexpected failures: 0,
-  - live graph violations: 0,
-  - tests passed in the run.
+- Command/run type: local live matrix and paper-table generation (`python scripts/run_live_llm_matrix.py --trials 1` and `python scripts/generate_paper_tables.py`).
+- Generated `results/` artifacts are intentionally untracked by repository policy.
 
 ## 2. Aggregate result
 
@@ -22,91 +14,95 @@
 |---|---:|
 | model | gpt-4o-mini |
 | goals | 23 |
-| trials_per_goal | 3 |
-| total_trials | 69 |
-| parsed_ok | 69 |
-| static_analysis_passed | 67 |
-| sandbox_passed | 64 |
-| diff_matches | 59 |
-| promotions_succeeded | 59 |
-| matching_event_fires | 59 |
-| nonmatching_event_silent | 59 |
-| disable_succeeded | 59 |
-| full_successes | 59 |
+| trials_per_goal | 1 |
+| total_trials | 23 |
+| parsed_ok | 23 |
+| static_analysis_passed | 23 |
+| sandbox_passed | 23 |
+| diff_matches | 22 |
+| promotions_succeeded | 22 |
+| matching_event_fires | 22 |
+| nonmatching_event_silent | 22 |
+| disable_succeeded | 22 |
+| full_successes | 22 |
 | parse_failures | 0 |
-| static_failures | 2 |
-| sandbox_failures | 3 |
-| semantic_failures | 5 |
+| static_failures | 0 |
+| sandbox_failures | 0 |
+| semantic_failures | 1 |
 | promotion_failures | 0 |
 | matching_event_failures | 0 |
 | nonmatching_event_failures | 0 |
 | disable_failures | 0 |
+| surrounding_pytest_passed | 64 |
+| adversarial_cases_matching_expectation | 29/29 |
+| adversarial_unexpected_passes | 0 |
+| adversarial_unexpected_failures | 0 |
+| adversarial_live_graph_violations | 0 |
 
-## 3. Per-goal outcomes
+## 3. Per-goal outcome summary
 
 | Goal | Trials | Full successes |
 |---|---:|---:|
-| file_summary_1 | 3 | 2 |
-| todo_extract_1 | 3 | 3 |
-| heading_count_1 | 3 | 3 |
-| url_extract_1 | 3 | 0 |
-| todo_extract_2 | 3 | 3 |
-| todo_extract_3 | 3 | 3 |
-| todo_extract_4 | 3 | 3 |
-| missing_prov_1 | 3 | 3 |
-| missing_prov_2 | 3 | 3 |
-| missing_prov_3 | 3 | 3 |
-| missing_prov_4 | 3 | 3 |
-| rel_task_owner | 3 | 3 |
-| rel_summary_source | 3 | 0 |
-| rel_eval_proposal | 3 | 2 |
-| rel_child_parent | 3 | 3 |
-| schema_violation_1 | 3 | 3 |
-| schema_violation_2 | 3 | 3 |
-| classify_file_py | 3 | 2 |
-| classify_file_md | 3 | 2 |
-| classify_priority_high | 3 | 3 |
-| classify_priority_low | 3 | 3 |
-| classify_risk_high | 3 | 3 |
-| classify_risk_low | 3 | 3 |
+| file_summary_1 | 1 | 1 |
+| todo_extract_1 | 1 | 1 |
+| heading_count_1 | 1 | 1 |
+| url_extract_1 | 1 | 1 |
+| todo_extract_2 | 1 | 1 |
+| todo_extract_3 | 1 | 1 |
+| todo_extract_4 | 1 | 1 |
+| missing_prov_1 | 1 | 1 |
+| missing_prov_2 | 1 | 1 |
+| missing_prov_3 | 1 | 1 |
+| missing_prov_4 | 1 | 1 |
+| rel_task_owner | 1 | 1 |
+| rel_summary_source | 1 | 0 |
+| rel_eval_proposal | 1 | 1 |
+| rel_child_parent | 1 | 1 |
+| schema_violation_1 | 1 | 1 |
+| schema_violation_2 | 1 | 1 |
+| classify_file_py | 1 | 1 |
+| classify_file_md | 1 | 1 |
+| classify_priority_high | 1 | 1 |
+| classify_priority_low | 1 | 1 |
+| classify_risk_high | 1 | 1 |
+| classify_risk_low | 1 | 1 |
 
-## 4. Failure-stage breakdown
+## 4. Failure analysis
 
-| Stage | Count |
-|---|---:|
-| none | 59 |
-| semantic_diff | 5 |
-| sandbox | 3 |
-| static_analysis | 2 |
+Single failed case from the attached run output:
 
-## 5. Failure cases
+- `goal_id`: `rel_summary_source`
+- `failure_stage`: `semantic_diff`
+- `parsed_ok`: `true`
+- `static_analysis_passed`: `true`
+- `sandbox_passed`: `true`
+- `diff_match`: `false`
+- `promotion_succeeded`: `false`
+- `source_execution_error`: `null`
+- `static_analysis_errors`: `[]`
 
-| Goal | Trial | Stage | Notes |
-|---|---:|---|---|
-| file_summary_1 | 1 | semantic_diff | Semantic diff mismatch. |
-| url_extract_1 | 0 | sandbox | `source_execution_error: name 'next' is not defined`. |
-| url_extract_1 | 1 | sandbox | `source_execution_error: name 'next' is not defined`. |
-| url_extract_1 | 2 | static_analysis | Unterminated string literal (line 3). |
-| rel_summary_source | 0 | semantic_diff | Semantic diff mismatch. |
-| rel_summary_source | 1 | semantic_diff | Semantic diff mismatch. |
-| rel_summary_source | 2 | semantic_diff | Semantic diff mismatch. |
-| rel_eval_proposal | 0 | semantic_diff | Semantic diff mismatch. |
-| classify_file_py | 2 | static_analysis | Unexpected character after line continuation (line 4). |
-| classify_file_md | 2 | sandbox | `source_execution_error: object type not allowed`. |
+Interpretation: this was a semantic mismatch caught before promotion/authority transfer, not a parse, static-analysis, sandbox, promotion-runtime, or execution error.
 
-## 6. Interpretation for paper
+## 5. Paper relevance
 
-Safe interpretation: A 23-goal, 69-trial local live LLM matrix with gpt-4o-mini produced 59/69 full lifecycle successes. All 69 attempts parsed; all failures were caught before authority transfer except the successful promoted cases, and no promotion/matching/nonmatching/disable failures occurred. This supports bounded lifecycle feasibility and failure-stage observability.
+This snapshot materially strengthens the paper’s empirical section by extending from a two-goal smoke-test framing to a bounded 23-goal local live matrix result with 22/23 full lifecycle successes.
 
-## 7. Non-claims
+Safe claim: a bounded 23-goal live matrix with `gpt-4o-mini` showed 22/23 full lifecycle successes; the one failure was caught by semantic diff before authority transfer.
 
-- Not broad LLM reliability.
-- Not open-ended recursive self-improvement.
-- Not full Python sandbox security.
-- Not secure arbitrary code execution.
-- Not a broad task-performance benchmark.
-- Local run may vary across time/model/API behavior.
+Non-claims (explicitly out of scope):
 
-## 8. Next step recommendation
+- broad LLM reliability,
+- open-ended self-improvement,
+- full Python sandbox security,
+- production security proof,
+- broad task-performance benchmarking.
 
-Update `docs/paper_outline.md` and future paper result sections to use this 23-goal/69-trial matrix snapshot as the primary live-run result, while retaining bounded-corpus caveats.
+## 6. Relationship to generated artifacts
+
+- `results/live_llm_matrix_summary.json` and related `results/` files are generated outputs and intentionally untracked.
+- This document (`docs/live_llm_matrix_results.md`) is the tracked, human-readable snapshot of the local run outcome.
+- Re-running the live matrix in the future may produce different numbers.
+
+## 7. Next step
+
+Recommended next step: run `--trials 3` across the same 23-goal matrix to estimate stability/variance instead of relying on a single trial per goal.
