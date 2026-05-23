@@ -82,7 +82,7 @@ In deterministic lifecycle evaluation (6 runs across conditions A/B/C), we obser
 - Small deterministic corpus and hand-authored adversarial set.
 - Pattern-based static analysis limitations.
 - Sandbox limitations (not capability-secure/process-isolated).
-- Limited live LLM evidence (2 goals).
+- Live LLM evidence remains bounded to one local model run (23 goals, 69 trials).
 - No general task-performance claims.
 
 ### 9. Related work
@@ -117,7 +117,7 @@ A key design requirement is parity between sandbox validation and promoted execu
 
 ### 6.5 Live LLM authorship matrix (bounded corpus)
 
-We include a bounded local live authorship matrix using **`gpt-4o-mini`** over **23 goals** with **3 trials per goal** (**69 attempts**). Outcomes are: **69/69 parsed** with **0 parse failures** and **59/69 full lifecycle successes**. No failures occur in promotion, matching-event firing, nonmatching silence, or disable checks. Observed failures are concentrated in **semantic diff (5)**, **sandbox (3)**, and **static analysis (2)**. We interpret this strictly as bounded-corpus lifecycle feasibility and observability, not evidence of broad live LLM reliability across tasks, prompts, models, or adversarial prompt conditions.
+We include a bounded local live authorship matrix using **`gpt-4o-mini`** over **23 goals** with **3 trials per goal** (**69 attempts**). Outcomes are: **69/69 parsed** (**0 parse failures**), **67/69 static-analysis passed**, **64/69 sandbox passed**, **59/69 semantic diff matched**, and **59/69 full lifecycle successes**. Promotion-linked outcomes are aligned at **59/69 promoted**, with **0 promotion failures**, **0 matching-event failures**, **0 nonmatching-event failures**, and **0 disable failures**. Failures are concentrated in **semantic diff (5)**, **sandbox (3)**, and **static analysis (2)**. We interpret this strictly as bounded-corpus lifecycle feasibility and observability, not evidence of broad live LLM reliability across tasks, prompts, models, or adversarial prompt conditions.
 
 ## 7. Tables to include
 

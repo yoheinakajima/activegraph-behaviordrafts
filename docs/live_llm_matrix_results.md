@@ -1,108 +1,99 @@
 # Live LLM Matrix Results Snapshot
 
-## 1. Run context
+## Current primary snapshot (local)
 
-- Date: 2026-05-23 (timestamp shown in attached run output: `2026-05-23T02:31:05+00:00`).
-- Execution context: local run output captured outside Codex.
-- Model: `gpt-4o-mini`.
-- Command/run type: local live matrix and paper-table generation (`python scripts/run_live_llm_matrix.py --trials 1` and `python scripts/generate_paper_tables.py`).
-- Generated `results/` artifacts are intentionally untracked by repository policy.
+This document records the **current primary local live matrix snapshot** for this repository.
 
-## 2. Aggregate result
+- Date: 2026-05-23
+- Model: `gpt-4o-mini`
+- Goals: 23
+- Trials per goal: 3
+- Total trials: 69
+
+> This is a **local result snapshot** from one bounded run context. Future live runs may vary by time, environment, model behavior, and prompt/runtime variance. These results are not a claim of broad LLM reliability.
+
+## Aggregate metrics
 
 | Metric | Value |
 |---|---:|
 | model | gpt-4o-mini |
 | goals | 23 |
-| trials_per_goal | 1 |
-| total_trials | 23 |
-| parsed_ok | 23 |
-| static_analysis_passed | 23 |
-| sandbox_passed | 23 |
-| diff_matches | 22 |
-| promotions_succeeded | 22 |
-| matching_event_fires | 22 |
-| nonmatching_event_silent | 22 |
-| disable_succeeded | 22 |
-| full_successes | 22 |
+| trials_per_goal | 3 |
+| total_trials | 69 |
+| parsed_ok | 69 |
+| static_analysis_passed | 67 |
+| sandbox_passed | 64 |
+| diff_matches | 59 |
+| promotions_succeeded | 59 |
+| matching_event_fires | 59 |
+| nonmatching_event_silent | 59 |
+| disable_succeeded | 59 |
+| full_successes | 59 |
 | parse_failures | 0 |
-| static_failures | 0 |
-| sandbox_failures | 0 |
-| semantic_failures | 1 |
+| static_failures | 2 |
+| sandbox_failures | 3 |
+| semantic_failures | 5 |
 | promotion_failures | 0 |
 | matching_event_failures | 0 |
 | nonmatching_event_failures | 0 |
 | disable_failures | 0 |
-| surrounding_pytest_passed | 64 |
-| adversarial_cases_matching_expectation | 29/29 |
-| adversarial_unexpected_passes | 0 |
-| adversarial_unexpected_failures | 0 |
-| adversarial_live_graph_violations | 0 |
 
-## 3. Per-goal outcome summary
+## Failure-stage breakdown
 
-| Goal | Trials | Full successes |
-|---|---:|---:|
-| file_summary_1 | 1 | 1 |
-| todo_extract_1 | 1 | 1 |
-| heading_count_1 | 1 | 1 |
-| url_extract_1 | 1 | 1 |
-| todo_extract_2 | 1 | 1 |
-| todo_extract_3 | 1 | 1 |
-| todo_extract_4 | 1 | 1 |
-| missing_prov_1 | 1 | 1 |
-| missing_prov_2 | 1 | 1 |
-| missing_prov_3 | 1 | 1 |
-| missing_prov_4 | 1 | 1 |
-| rel_task_owner | 1 | 1 |
-| rel_summary_source | 1 | 0 |
-| rel_eval_proposal | 1 | 1 |
-| rel_child_parent | 1 | 1 |
-| schema_violation_1 | 1 | 1 |
-| schema_violation_2 | 1 | 1 |
-| classify_file_py | 1 | 1 |
-| classify_file_md | 1 | 1 |
-| classify_priority_high | 1 | 1 |
-| classify_priority_low | 1 | 1 |
-| classify_risk_high | 1 | 1 |
-| classify_risk_low | 1 | 1 |
+- none: 59
+- semantic_diff: 5
+- sandbox: 3
+- static_analysis: 2
 
-## 4. Failure analysis
+## Goal-level full success counts
 
-Single failed case from the attached run output:
+- file_summary_1: 2/3
+- todo_extract_1: 3/3
+- heading_count_1: 3/3
+- url_extract_1: 0/3
+- todo_extract_2: 3/3
+- todo_extract_3: 3/3
+- todo_extract_4: 3/3
+- missing_prov_1: 3/3
+- missing_prov_2: 3/3
+- missing_prov_3: 3/3
+- missing_prov_4: 3/3
+- rel_task_owner: 3/3
+- rel_summary_source: 0/3
+- rel_eval_proposal: 2/3
+- rel_child_parent: 3/3
+- schema_violation_1: 3/3
+- schema_violation_2: 3/3
+- classify_file_py: 2/3
+- classify_file_md: 2/3
+- classify_priority_high: 3/3
+- classify_priority_low: 3/3
+- classify_risk_high: 3/3
+- classify_risk_low: 3/3
 
-- `goal_id`: `rel_summary_source`
-- `failure_stage`: `semantic_diff`
-- `parsed_ok`: `true`
-- `static_analysis_passed`: `true`
-- `sandbox_passed`: `true`
-- `diff_match`: `false`
-- `promotion_succeeded`: `false`
-- `source_execution_error`: `null`
-- `static_analysis_errors`: `[]`
+## Known failure cases
 
-Interpretation: this was a semantic mismatch caught before promotion/authority transfer, not a parse, static-analysis, sandbox, promotion-runtime, or execution error.
+- file_summary_1 trial 1: semantic_diff
+- url_extract_1 trial 0: sandbox, source_execution_error: name 'next' is not defined
+- url_extract_1 trial 1: sandbox, source_execution_error: name 'next' is not defined
+- url_extract_1 trial 2: static_analysis, unterminated string literal
+- rel_summary_source trials 0,1,2: semantic_diff
+- rel_eval_proposal trial 0: semantic_diff
+- classify_file_py trial 2: static_analysis, unexpected character after line continuation
+- classify_file_md trial 2: sandbox, source_execution_error: object type not allowed
 
-## 5. Paper relevance
+## Surrounding context retained
 
-This snapshot materially strengthens the paper’s empirical section by extending from a two-goal smoke-test framing to a bounded 23-goal local live matrix result with 22/23 full lifecycle successes.
+- deterministic baseline still passes
+- adversarial corpus remains 29/29 expectation match
+- unexpected passes: 0
+- unexpected failures: 0
+- live graph violations: 0
+- latest tests passed
 
-Safe claim: a bounded 23-goal live matrix with `gpt-4o-mini` showed 22/23 full lifecycle successes; the one failure was caught by semantic diff before authority transfer.
+## Earlier runs (prior snapshots)
 
-Non-claims (explicitly out of scope):
+Earlier smoke/smaller snapshots (for historical context only) are prior runs and are **not** the current primary result:
 
-- broad LLM reliability,
-- open-ended self-improvement,
-- full Python sandbox security,
-- production security proof,
-- broad task-performance benchmarking.
-
-## 6. Relationship to generated artifacts
-
-- `results/live_llm_matrix_summary.json` and related `results/` files are generated outputs and intentionally untracked.
-- This document (`docs/live_llm_matrix_results.md`) is the tracked, human-readable snapshot of the local run outcome.
-- Re-running the live matrix in the future may produce different numbers.
-
-## 7. Next step
-
-Recommended next step: run `--trials 3` across the same 23-goal matrix to estimate stability/variance instead of relying on a single trial per goal.
+- 23-goal / 1-trial run (superseded)
+- 2-goal smoke-style runs (superseded)
