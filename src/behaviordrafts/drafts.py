@@ -49,7 +49,7 @@ def author_behavior_draft_fixture(name: str, goal: Dict[str, Any]) -> BehaviorDr
         declared_trigger_events=["object.created"], declared_scope=goal["scope"], declared_inputs=["event", "graph"],
         declared_outputs=["events"], declared_permissions=["emit.object.created"], declared_dependencies=goal.get("declared_dependencies", []),
         expected_emitted_events=["object.created"], expected_graph_mutations=goal["expected_diff"], created_by="fixture",
-        created_from_goal=goal["goal_name"], model_used="none", prompt_hash=hashlib.sha256(source.encode()).hexdigest(),
+        created_from_goal=get_goal_name(goal), model_used="none", prompt_hash=hashlib.sha256(source.encode()).hexdigest(),
         authoring_mode="fixture", provenance={"authoring_mode": "fixture"}, status="drafted"
     )
 
@@ -62,9 +62,12 @@ def get_goal_name(goal: Dict[str, Any]) -> str:
 
 
 def author_behavior_tests(draft: BehaviorDraft, goal: Dict[str, Any]) -> List[BehaviorTest]:
+    expected_events = goal.get("expected_events")
+    if expected_events is None:
+        expected_events = ["object.created"] if goal.get("trigger_object") is not None else []
     t = BehaviorTest(
-        id=str(uuid.uuid4()), draft_id=draft.id, test_name=f"{draft.name}_basic", fixture_events=goal["fixture_events"],
-        fixture_graph=goal.get("fixture_graph", {}), expected_events=goal["expected_events"],
+        id=str(uuid.uuid4()), draft_id=draft.id, test_name=f"{draft.name}_basic", fixture_events=goal.get("fixture_events", []),
+        fixture_graph=goal.get("fixture_graph", {}), expected_events=expected_events,
         expected_objects=goal.get("expected_objects", []), expected_relations=goal.get("expected_relations", []),
         expected_diff=goal["expected_diff"], test_source="template", created_by="fixture"
     )
