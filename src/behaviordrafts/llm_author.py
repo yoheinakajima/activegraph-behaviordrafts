@@ -80,14 +80,16 @@ def _validator_requirements(goal: Dict[str, Any]) -> str:
         return (
             "Validator schema requirements (summary_validator):\n"
             "- Emit exactly 1 created object with fields: id, type=\"Summary\", first_sentence, line_count.\n"
+            "- first_sentence must preserve trailing period when the source first sentence includes one.\n"
             "- Emit exactly 1 created relation with fields: type=\"summarizes\", from=<summary id>, to=<source object id>.\n"
         )
     if vtype == "todo_extractor_validator":
         return (
             "Validator schema requirements (todo_extractor_validator):\n"
             "- Emit one created object of type=\"TodoFinding\" per TODO line in obj.get(\"content\", \"\").\n"
-            "- Each TodoFinding must include id, type, and content text containing the TODO line.\n"
+            "- Each TodoFinding must include unique id (for example f\"todo-{obj['id']}-{i}\"), type, and content text containing the TODO line.\n"
             "- Include file_id set to obj.get(\"id\") for traceability.\n"
+            "- Emit exactly one TodoFinding per TODO line.\n"
             "- Do not emit relations unless expected_relations is non-empty.\n"
         )
     if vtype == "heading_count_validator":

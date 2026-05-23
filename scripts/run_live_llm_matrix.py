@@ -67,13 +67,35 @@ def main():
                     case["diff_match"] = sandbox.sandbox_passed and semantic_diff_matches(goal, sandbox.structural_diff)
                     if (not args.no_promote) and case["parsed_ok"] and case["static_analysis_passed"] and case["sandbox_passed"] and case["diff_match"]:
                         case["promotion_attempted"] = True
-                        decision = promote_behavior(runtime, draft, analysis, sandbox, compile_runtime_behavior(draft.source_code))
+                        decision = promote_behavior(
+                            runtime,
+                            draft,
+                            analysis,
+                            sandbox,
+                            compile_runtime_behavior(draft.source_code),
+                            bind_event_type="object.created",
+                            bind_scope=goal["scope"],
+                        )
                         case["promotion_succeeded"] = decision.decision == "approved"
                         if case["promotion_succeeded"]:
                             bid = next(iter(runtime.behaviors))
+                            before_objects = set(runtime.graph.objects.keys())
+                            before_relations = len(runtime.graph.relations)
+                            before_events = len(runtime.events)
                             runtime.emit(trigger)
-                            allowed = set(goal.get("allowed_object_types", []))
-                            case["matching_event_fired"] = any(o.get("type") in allowed for o in runtime.graph.objects.values())
+                            allowed_objects = set(goal.get("allowed_object_types", []))
+                            allowed_relations = set(goal.get("allowed_relation_types", []))
+                            created_object_ids = set(runtime.graph.objects.keys()) - before_objects
+                            created_allowed_objects = any(
+                                runtime.graph.objects[obj_id].get("type") in allowed_objects
+                                for obj_id in created_object_ids
+                            )
+                            created_allowed_relations = any(
+                                rel.get("type") in allowed_relations
+                                for rel in runtime.graph.relations[before_relations:]
+                            )
+                            emitted_event_delta = len(runtime.events) - before_events
+                            case["matching_event_fired"] = (created_allowed_objects or created_allowed_relations) and emitted_event_delta > 1
                             before = len(runtime.events)
                             runtime.emit(Event("object.created", {"object": {"id": "unrelated", "type": "Unrelated"}}))
                             case["nonmatching_event_silent"] = len(runtime.events) == before + 1
