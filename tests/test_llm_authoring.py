@@ -1,7 +1,21 @@
 import json
 
 from behaviordrafts.harness import run_experiments
-from behaviordrafts.llm_author import author_behavior_draft_with_llm
+from behaviordrafts.llm_author import _extract_response_text, author_behavior_draft_with_llm
+
+
+def test_extract_response_text_from_output_array_shape():
+    body = {
+        "output": [
+            {
+                "type": "message",
+                "content": [
+                    {"type": "output_text", "text": '{"name":"x"}'},
+                ],
+            }
+        ]
+    }
+    assert _extract_response_text(body) == '{"name":"x"}'
 
 
 def test_valid_llm_json_becomes_draft(monkeypatch):

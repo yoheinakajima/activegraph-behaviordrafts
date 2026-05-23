@@ -11,6 +11,19 @@ from .drafts import BehaviorDraft
 DEFAULT_MODEL = os.getenv("BEHAVIORDRAFTS_MODEL", "gpt-4o-mini")
 
 
+def _extract_response_text(body: Dict[str, Any]) -> str:
+    output_text = body.get("output_text")
+    if isinstance(output_text, str) and output_text.strip():
+        return output_text
+
+    for item in body.get("output", []) or []:
+        for content in item.get("content", []) or []:
+            text = content.get("text")
+            if isinstance(text, str) and text.strip():
+                return text
+    return ""
+
+
 def llm_available() -> bool:
     return bool(os.getenv("OPENAI_API_KEY"))
 
@@ -51,7 +64,7 @@ def _call_openai(prompt: str, model: str, api_key: str) -> str:
     )
     with request.urlopen(req, timeout=60) as resp:
         body = json.loads(resp.read().decode("utf-8"))
-    return body.get("output_text", "")
+    return _extract_response_text(body)
 
 
 def author_behavior_draft_with_llm(goal: Dict[str, Any], fixture: Dict[str, Any], model: Optional[str] = None) -> Tuple[Optional[BehaviorDraft], Dict[str, Any]]:
