@@ -1,4 +1,5 @@
 import json
+import os
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,7 +10,7 @@ from .llm_author import author_behavior_draft_with_llm, llm_available
 from .events import Event
 from .promotion import disable_behavior, promote_behavior
 from .reporting import write_json, write_jsonl
-from .runtime import EventSourcedRuntime
+from .activegraph_adapter import ActiveGraphAdapter
 from .sandbox import compile_runtime_behavior, run_behavior_sandbox
 from .static_analysis import run_static_analysis
 
@@ -152,9 +153,10 @@ def run_experiments(use_llm: bool = False):
     drafts_log: List[Dict[str, Any]] = []
     sandboxes: List[Dict[str, Any]] = []
 
+    allow_local_shim = os.getenv("BEHAVIORDRAFTS_ALLOW_LOCAL_SHIM", "1") == "1"
     for condition in ["A", "B", "C"]:
         for goal in goals:
-            runtime = EventSourcedRuntime()
+            runtime = ActiveGraphAdapter(allow_local_shim=allow_local_shim)
             expected_diff = goal["expected_diff"]
 
             result: Dict[str, Any] = {
@@ -193,6 +195,11 @@ def run_experiments(use_llm: bool = False):
                 "promoted_runtime_uses_readonly_graph": None,
                 "promoted_runtime_uses_emit_only_ctx": None,
                 "promoted_runtime_direct_mutation_blocked": None,
+                "backend_kind": runtime.backend_kind,
+                "backend_details": runtime.backend_details,
+                "activegraph_available": runtime.activegraph_available,
+                "activegraph_native_features": runtime.activegraph_native_features,
+                "adapter_shim_features": runtime.adapter_shim_features,
             }
 
             if condition != "A":
@@ -227,7 +234,7 @@ def run_experiments(use_llm: bool = False):
                         "actual_diff": sandbox.structural_diff,
                         "diff_match": _diff_matches(expected_diff, sandbox.structural_diff)
                         and _semantic_diff_matches(goal["goal_name"], goal["trigger_object"], sandbox.structural_diff),
-                        "live_graph_unchanged_before_promotion": len(runtime.graph.objects) == 0 and len(runtime.graph.relations) == 0,
+                        "live_graph_unchanged_before_promotion": len(runtime.runtime.graph.objects) == 0 and len(runtime.runtime.graph.relations) == 0,
                         "llm_static_analysis_passed": analysis.analysis_passed if use_llm else None,
                         "llm_sandbox_passed": sandbox.sandbox_passed if use_llm else None,
                         "llm_diff_match": (_diff_matches(expected_diff, sandbox.structural_diff) and _semantic_diff_matches(goal["goal_name"], goal["trigger_object"], sandbox.structural_diff)) if use_llm else None,
@@ -255,7 +262,7 @@ def run_experiments(use_llm: bool = False):
                     binding_id = next(iter(runtime.behaviors))
                     runtime.emit(trigger)
                     result["promoted_behavior_fired_on_matching_event"] = any(
-                        o.get("type") in ["Summary", "Evaluation"] for o in runtime.graph.objects.values()
+                        o.get("type") in ["Summary", "Evaluation"] for o in runtime.runtime.graph.objects.values()
                     )
 
                     nonmatching_before = len(runtime.events)
